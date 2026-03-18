@@ -1,0 +1,17 @@
+{
+  "name": "LocaLedger Suite",
+  "short_name": "LocaLedger",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "description": "LocaLedger Suite — your offline personal finance ecosystem",
+  "icons": [
+    {
+      "src": "../icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

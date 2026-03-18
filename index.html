@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>LocaLedger Suite</title>
+<script>
+  window.tailwind = { config: { theme: { extend: { fontSize: { 'xxs': ['0.625rem', { lineHeight: '0.875rem' }] } } } } }
+</script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+body { font-family: 'Space Mono','Courier New',monospace; touch-action: manipulation; overscroll-behavior: none; }
+
+/* ── App tile ─────────────────────────────────────────────── */
+.app-tile {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; padding: 20px 12px; border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(255,255,255,0.03);
+  cursor: pointer; transition: transform 0.12s, background 0.15s, border-color 0.15s;
+  text-decoration: none; position: relative; overflow: hidden;
+}
+.app-tile:active  { transform: scale(0.95); }
+.app-tile.live:hover { border-color: rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); }
+.app-tile.soon    { opacity: 0.55; cursor: default; }
+.app-tile .icon   { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; }
+.app-tile .name   { font-size: 13px; font-weight: 700; color: #f1f5f9; letter-spacing: -0.01em; }
+.app-tile .desc   { font-size: 10px; color: #94a3b8; text-align: center; line-height: 1.4; }
+.app-tile .badge  { position: absolute; top: 10px; right: 10px; font-size: 8px; font-weight: 700;
+  padding: 2px 6px; border-radius: 999px; letter-spacing: 0.07em; text-transform: uppercase; }
+
+/* ── Drum ─────────────────────────────────────────────────── */
+.suite-drum-wrap {
+  height: 52px; overflow: hidden; display: inline-block; vertical-align: middle;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 80%, transparent 100%);
+  mask-image:         linear-gradient(to bottom, transparent 0%, #000 20%, #000 80%, transparent 100%);
+}
+.suite-drum { transition: transform 0.52s cubic-bezier(0.4,0,0.2,1); will-change: transform; }
+.suite-face { display: block; height: 52px; line-height: 52px; white-space: nowrap;
+  font-size: 36px; font-weight: 700; }
+
+/* ── Pulse ────────────────────────────────────────────────── */
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }
+.soon-pulse { animation: pulse 2.8s ease-in-out infinite; }
+</style>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0f172a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+</head>
+
+<body class="bg-gray-950 text-gray-100 min-h-screen flex flex-col" style="padding-bottom:env(safe-area-inset-bottom,0px)">
+
+<!-- Header -->
+<header class="px-5 pt-14 pb-6 text-center">
+  <div class="flex items-center justify-center gap-0 mb-1">
+    <!-- Ledger icon -->
+    <svg width="44" height="48" viewBox="0 0 20 22" fill="none" style="flex-shrink:0;margin-right:6px">
+      <circle cx="4" cy="4"  r="2.5" fill="#22C55E"/>
+      <rect x="8.5" y="2.75"  width="9"  height="2.5" rx="1.25" fill="#334155"/>
+      <circle cx="4" cy="11" r="2.5" fill="#F43F5E"/>
+      <rect x="8.5" y="9.75"  width="12" height="2.5" rx="1.25" fill="#334155"/>
+      <circle cx="4" cy="18" r="2.5" fill="#6366F1"/>
+      <rect x="8.5" y="16.75" width="7"  height="2.5" rx="1.25" fill="#334155"/>
+    </svg>
+
+    <span style="font-size:36px;font-weight:700;color:#F8FAFC;line-height:1">Loca</span>
+    <div class="suite-drum-wrap">
+      <div id="suiteDrum" class="suite-drum">
+        <span class="suite-face" style="color:#6366F1">Labor</span>
+        <span class="suite-face" style="color:#F43F5E">Loss</span>
+        <span class="suite-face" style="color:#F59E0B">Limit</span>
+        <span class="suite-face" style="color:#F97316">Loan</span>
+        <span class="suite-face" style="color:#10B981">Legacy</span>
+        <span class="suite-face" style="color:#06B6D4">Liquid</span>
+        <span class="suite-face" style="color:#6366F1">Labor</span>
+      </div>
+    </div>
+  </div>
+  <p class="text-xs text-gray-500 mt-2">Your offline personal finance suite</p>
+</header>
+
+<!-- App Grid -->
+<main class="flex-1 px-4 pb-8">
+  <div class="grid grid-cols-2 gap-3 max-w-sm mx-auto">
+
+    <!-- LocaLabor — LIVE -->
+    <a href="./LocaLabor/" class="app-tile live">
+      <div class="badge" style="background:rgba(99,102,241,0.25);color:#818cf8;border:1px solid rgba(99,102,241,0.4)">LIVE</div>
+      <div class="icon" style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3)">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="1.8">
+          <rect x="2" y="7" width="20" height="14" rx="2"/>
+          <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
+          <line x1="12" y1="12" x2="12" y2="16"/>
+          <line x1="10" y1="14" x2="14" y2="14"/>
+        </svg>
+      </div>
+      <div class="name" style="color:#818cf8">LocaLabor</div>
+      <div class="desc">Income & shift tracker</div>
+    </a>
+
+    <!-- LocaLoss — LIVE -->
+    <a href="./LocaLoss/" class="app-tile live">
+      <div class="badge" style="background:rgba(244,63,94,0.25);color:#fda4af;border:1px solid rgba(244,63,94,0.4)">LIVE</div>
+      <div class="icon" style="background:rgba(244,63,94,0.15);border:1px solid rgba(244,63,94,0.3)">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F43F5E" stroke-width="1.8">
+          <rect x="2" y="5" width="20" height="14" rx="2"/>
+          <line x1="2" y1="10" x2="22" y2="10"/>
+        </svg>
+      </div>
+      <div class="name" style="color:#fda4af">LocaLoss</div>
+      <div class="desc">Spending & bill tracker</div>
+    </a>
+
+    <!-- LocaLimit — SOON -->
+    <div class="app-tile soon">
+      <div class="badge soon-pulse" style="background:rgba(245,158,11,0.15);color:#fcd34d;border:1px solid rgba(245,158,11,0.25)">SOON</div>
+      <div class="icon" style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2)">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="1.8">
+          <path d="M18 20V10M12 20V4M6 20v-6"/>
+        </svg>
+      </div>
+      <div class="name" style="color:#fbbf24">LocaLimit</div>
+      <div class="desc">Budget intelligence</div>
+    </div>
+
+    <!-- LocaLoan — SOON -->
+    <div class="app-tile soon">
+      <div class="badge soon-pulse" style="background:rgba(249,115,22,0.15);color:#fdba74;border:1px solid rgba(249,115,22,0.25)">SOON</div>
+      <div class="icon" style="background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.2)">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="1.8">
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+        </svg>
+      </div>
+      <div class="name" style="color:#fb923c">LocaLoan</div>
+      <div class="desc">Loan payoff optimizer</div>
+    </div>
+
+    <!-- LocaLegacy — SOON -->
+    <div class="app-tile soon">
+      <div class="badge soon-pulse" style="background:rgba(16,185,129,0.15);color:#6ee7b7;border:1px solid rgba(16,185,129,0.25)">SOON</div>
+      <div class="icon" style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2)">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="1.8">
+          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+          <polyline points="17 6 23 6 23 12"/>
+        </svg>
+      </div>
+      <div class="name" style="color:#34d399">LocaLegacy</div>
+      <div class="desc">Investment tracker</div>
+    </div>
+
+    <!-- LocaLiquid — SOON -->
+    <div class="app-tile soon">
+      <div class="badge soon-pulse" style="background:rgba(6,182,212,0.15);color:#67e8f9;border:1px solid rgba(6,182,212,0.25)">SOON</div>
+      <div class="icon" style="background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.2)">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#06B6D4" stroke-width="1.8">
+          <path d="M12 2c0 0-8 6.5-8 12a8 8 0 0016 0c0-5.5-8-12-8-12z"/>
+        </svg>
+      </div>
+      <div class="name" style="color:#22d3ee">LocaLiquid</div>
+      <div class="desc">Net worth engine</div>
+    </div>
+
+  </div>
+
+  <div class="text-center mt-8 text-xs text-gray-700">
+    Offline · Private · No accounts
+  </div>
+</main>
+
+<script>
+/* Slot-machine drum auto-advance on load */
+const DRUM_H   = 52;
+const COLORS   = ['#6366F1','#F43F5E','#F59E0B','#F97316','#10B981','#06B6D4'];
+let   step     = 0;
+const drum     = document.getElementById('suiteDrum');
+
+function advance() {
+  step++;
+  if (step % 6 === 0 && step > 0) {
+    drum.style.transform = `translateY(-${step * DRUM_H}px)`;
+    setTimeout(() => {
+      drum.style.transition = 'none';
+      step = 0;
+      drum.style.transform = 'translateY(0)';
+      requestAnimationFrame(() => { drum.style.transition = ''; });
+    }, 520);
+  } else {
+    drum.style.transform = `translateY(-${step * DRUM_H}px)`;
+  }
+}
+
+// Start after 2s, every 2.8s
+setTimeout(() => { advance(); setInterval(advance, 2800); }, 2000);
+
+// PWA service worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>
