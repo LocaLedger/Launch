@@ -8,29 +8,9 @@
   window.tailwind = { config: { theme: { extend: { fontSize: { 'xxs': ['0.625rem', { lineHeight: '0.875rem' }] } } } } }
 </script>
 <script src="https://cdn.tailwindcss.com"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 body { font-family: 'Space Mono','Courier New',monospace; touch-action: manipulation; overscroll-behavior: none; }
-
-/* ── App tile ─────────────────────────────────────────────── */
-.app-tile {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 10px; padding: 20px 12px; border-radius: 18px;
-  border: 1px solid rgba(255,255,255,0.07);
-  background: rgba(255,255,255,0.03);
-  cursor: pointer; transition: transform 0.12s, background 0.15s, border-color 0.15s;
-  text-decoration: none; position: relative; overflow: hidden;
-}
-.app-tile:active  { transform: scale(0.95); }
-.app-tile.live:hover { border-color: rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); }
-.app-tile.soon    { opacity: 0.55; cursor: default; }
-.app-tile .icon   { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; }
-.app-tile .name   { font-size: 13px; font-weight: 700; color: #f1f5f9; letter-spacing: -0.01em; }
-.app-tile .desc   { font-size: 10px; color: #94a3b8; text-align: center; line-height: 1.4; }
-.app-tile .badge  { position: absolute; top: 10px; right: 10px; font-size: 8px; font-weight: 700;
-  padding: 2px 6px; border-radius: 999px; letter-spacing: 0.07em; text-transform: uppercase; }
 
 /* ── Drum ─────────────────────────────────────────────────── */
 .suite-drum-wrap {
@@ -39,26 +19,71 @@ body { font-family: 'Space Mono','Courier New',monospace; touch-action: manipula
   mask-image:         linear-gradient(to bottom, transparent 0%, #000 20%, #000 80%, transparent 100%);
 }
 .suite-drum { transition: transform 0.52s cubic-bezier(0.4,0,0.2,1); will-change: transform; }
-.suite-face { display: block; height: 52px; line-height: 52px; white-space: nowrap;
-  font-size: 36px; font-weight: 700; }
+.suite-face { display: block; height: 52px; line-height: 52px; white-space: nowrap; font-size: 36px; font-weight: 700; }
+
+/* ── Tiles ────────────────────────────────────────────────── */
+.app-tile {
+  display: flex; flex-direction: column; align-items: flex-start;
+  padding: 16px; border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(255,255,255,0.03);
+  text-decoration: none; position: relative; overflow: hidden;
+  opacity: 0;
+  animation: tileIn 0.35s ease forwards;
+}
+.app-tile.live { cursor: pointer; transition: border-color 0.15s, background 0.15s, transform 0.12s; }
+.app-tile.live:hover  { border-color: rgba(255,255,255,0.14); background: rgba(255,255,255,0.06); }
+.app-tile.live:active { transform: scale(0.97); }
+.app-tile.soon { cursor: default; }
+
+.tile-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+.tile-name { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 2px; }
+.tile-desc { font-size: 10px; color: #94a3b8; line-height: 1.4; margin-bottom: 12px; flex: 1; }
+
+.tile-badge {
+  position: absolute; top: 12px; right: 12px;
+  font-size: 8px; font-weight: 700; padding: 2px 7px; border-radius: 999px;
+  letter-spacing: 0.07em; text-transform: uppercase;
+}
+
+.launch-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 7px 12px; border-radius: 8px;
+  font-size: 11px; font-weight: 700; font-family: inherit;
+  border: none; cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  text-decoration: none;
+}
+.launch-btn:active { transform: scale(0.96); opacity: 0.85; }
 
 /* ── Pulse ────────────────────────────────────────────────── */
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }
 .soon-pulse { animation: pulse 2.8s ease-in-out infinite; }
+
+/* ── Stagger entrance ─────────────────────────────────────── */
+@keyframes tileIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+.app-tile:nth-child(1) { animation-delay: 0.08s; }
+.app-tile:nth-child(2) { animation-delay: 0.16s; }
+.app-tile:nth-child(3) { animation-delay: 0.24s; }
+.app-tile:nth-child(4) { animation-delay: 0.32s; }
+.app-tile:nth-child(5) { animation-delay: 0.40s; }
+.app-tile:nth-child(6) { animation-delay: 0.48s; }
+
+/* ── Header entrance ──────────────────────────────────────── */
+@keyframes fadeDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+header { animation: fadeDown 0.4s ease forwards; }
 </style>
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#0f172a" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 </head>
 
 <body class="bg-gray-950 text-gray-100 min-h-screen flex flex-col" style="padding-bottom:env(safe-area-inset-bottom,0px)">
 
-<!-- Header -->
-<header class="px-5 pt-14 pb-6 text-center">
-  <div class="flex items-center justify-center gap-0 mb-1">
-    <!-- Ledger icon -->
-    <svg width="44" height="48" viewBox="0 0 20 22" fill="none" style="flex-shrink:0;margin-right:6px">
+<!-- ── Header ─────────────────────────────────────────────── -->
+<header class="px-5 pt-14 pb-8 text-center">
+  <div class="flex items-center justify-center gap-0 mb-2">
+    <svg width="44" height="48" viewBox="0 0 20 22" fill="none" style="flex-shrink:0;margin-right:6px" aria-hidden="true">
       <circle cx="4" cy="4"  r="2.5" fill="#22C55E"/>
       <rect x="8.5" y="2.75"  width="9"  height="2.5" rx="1.25" fill="#334155"/>
       <circle cx="4" cy="11" r="2.5" fill="#F43F5E"/>
@@ -66,7 +91,6 @@ body { font-family: 'Space Mono','Courier New',monospace; touch-action: manipula
       <circle cx="4" cy="18" r="2.5" fill="#6366F1"/>
       <rect x="8.5" y="16.75" width="7"  height="2.5" rx="1.25" fill="#334155"/>
     </svg>
-
     <span style="font-size:36px;font-weight:700;color:#F8FAFC;line-height:1">Loca</span>
     <div class="suite-drum-wrap">
       <div id="suiteDrum" class="suite-drum">
@@ -80,107 +104,112 @@ body { font-family: 'Space Mono','Courier New',monospace; touch-action: manipula
       </div>
     </div>
   </div>
-  <p class="text-xs text-gray-500 mt-2">Your offline personal finance suite</p>
+  <p class="text-xs text-gray-500 mt-1">Your offline personal finance suite</p>
 </header>
 
-<!-- App Grid -->
-<main class="flex-1 px-4 pb-8">
-  <div class="grid grid-cols-2 gap-3 max-w-sm mx-auto">
-
-    <!-- LocaLabor — LIVE -->
-    <a href="./LocaLabor/" class="app-tile live">
-      <div class="badge" style="background:rgba(99,102,241,0.25);color:#818cf8;border:1px solid rgba(99,102,241,0.4)">LIVE</div>
-      <div class="icon" style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3)">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="1.8">
-          <rect x="2" y="7" width="20" height="14" rx="2"/>
-          <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
-          <line x1="12" y1="12" x2="12" y2="16"/>
-          <line x1="10" y1="14" x2="14" y2="14"/>
-        </svg>
-      </div>
-      <div class="name" style="color:#818cf8">LocaLabor</div>
-      <div class="desc">Income & shift tracker</div>
-    </a>
-
-    <!-- LocaLoss — LIVE -->
-    <a href="./LocaLoss/" class="app-tile live">
-      <div class="badge" style="background:rgba(244,63,94,0.25);color:#fda4af;border:1px solid rgba(244,63,94,0.4)">LIVE</div>
-      <div class="icon" style="background:rgba(244,63,94,0.15);border:1px solid rgba(244,63,94,0.3)">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F43F5E" stroke-width="1.8">
-          <rect x="2" y="5" width="20" height="14" rx="2"/>
-          <line x1="2" y1="10" x2="22" y2="10"/>
-        </svg>
-      </div>
-      <div class="name" style="color:#fda4af">LocaLoss</div>
-      <div class="desc">Spending & bill tracker</div>
-    </a>
-
-    <!-- LocaLimit — SOON -->
-    <div class="app-tile soon">
-      <div class="badge soon-pulse" style="background:rgba(245,158,11,0.15);color:#fcd34d;border:1px solid rgba(245,158,11,0.25)">SOON</div>
-      <div class="icon" style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2)">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="1.8">
-          <path d="M18 20V10M12 20V4M6 20v-6"/>
-        </svg>
-      </div>
-      <div class="name" style="color:#fbbf24">LocaLimit</div>
-      <div class="desc">Budget intelligence</div>
-    </div>
-
-    <!-- LocaLoan — SOON -->
-    <div class="app-tile soon">
-      <div class="badge soon-pulse" style="background:rgba(249,115,22,0.15);color:#fdba74;border:1px solid rgba(249,115,22,0.25)">SOON</div>
-      <div class="icon" style="background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.2)">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="1.8">
-          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
-        </svg>
-      </div>
-      <div class="name" style="color:#fb923c">LocaLoan</div>
-      <div class="desc">Loan payoff optimizer</div>
-    </div>
-
-    <!-- LocaLegacy — SOON -->
-    <div class="app-tile soon">
-      <div class="badge soon-pulse" style="background:rgba(16,185,129,0.15);color:#6ee7b7;border:1px solid rgba(16,185,129,0.25)">SOON</div>
-      <div class="icon" style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2)">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="1.8">
-          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-          <polyline points="17 6 23 6 23 12"/>
-        </svg>
-      </div>
-      <div class="name" style="color:#34d399">LocaLegacy</div>
-      <div class="desc">Investment tracker</div>
-    </div>
-
-    <!-- LocaLiquid — SOON -->
-    <div class="app-tile soon">
-      <div class="badge soon-pulse" style="background:rgba(6,182,212,0.15);color:#67e8f9;border:1px solid rgba(6,182,212,0.25)">SOON</div>
-      <div class="icon" style="background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.2)">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#06B6D4" stroke-width="1.8">
-          <path d="M12 2c0 0-8 6.5-8 12a8 8 0 0016 0c0-5.5-8-12-8-12z"/>
-        </svg>
-      </div>
-      <div class="name" style="color:#22d3ee">LocaLiquid</div>
-      <div class="desc">Net worth engine</div>
-    </div>
-
-  </div>
-
-  <div class="text-center mt-8 text-xs text-gray-700">
-    Offline · Private · No accounts
-  </div>
+<!-- ── App Grid ───────────────────────────────────────────── -->
+<main class="flex-1 px-4 pb-10">
+  <div id="appGrid" class="grid grid-cols-2 gap-3 max-w-sm mx-auto"></div>
+  <p class="text-center text-xs text-gray-700 mt-8">Offline · Private · No accounts</p>
 </main>
 
 <script>
-/* Slot-machine drum auto-advance on load */
-const DRUM_H   = 52;
-const COLORS   = ['#6366F1','#F43F5E','#F59E0B','#F97316','#10B981','#06B6D4'];
-let   step     = 0;
-const drum     = document.getElementById('suiteDrum');
+// ── URL routing: relative in dev, absolute subdomains in prod ──────────────
+const IS_DEV   = ['localhost', '127.0.0.1'].includes(location.hostname);
+const DEV_BASE = `${location.protocol}//${location.hostname}${location.port ? ':' + location.port : ''}`;
+
+const APPS = [
+  {
+    id: 'labor', name: 'LocaLabor', desc: 'Income & shift tracker',
+    color: '#6366F1', text: '#818cf8', status: 'live',
+    devUrl: DEV_BASE + '/Labor/', prodUrl: 'https://labor.n8.wtf',
+    icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>`,
+  },
+  {
+    id: 'loss', name: 'LocaLoss', desc: 'Spending & bill tracker',
+    color: '#F43F5E', text: '#fda4af', status: 'live',
+    devUrl: DEV_BASE + '/Loss/', prodUrl: 'https://loss.n8.wtf',
+    icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`,
+  },
+  {
+    id: 'limit', name: 'LocaLimit', desc: 'Budget intelligence',
+    color: '#F59E0B', text: '#fbbf24', status: 'soon',
+    devUrl: DEV_BASE + '/Limit/', prodUrl: 'https://limit.n8.wtf',
+    icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>`,
+  },
+  {
+    id: 'loan', name: 'LocaLoan', desc: 'Loan payoff optimizer',
+    color: '#F97316', text: '#fb923c', status: 'soon',
+    devUrl: DEV_BASE + '/Loan/', prodUrl: 'https://loan.n8.wtf',
+    icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>`,
+  },
+  {
+    id: 'legacy', name: 'LocaLegacy', desc: 'Investment tracker',
+    color: '#10B981', text: '#34d399', status: 'soon',
+    devUrl: DEV_BASE + '/Legacy/', prodUrl: 'https://legacy.n8.wtf',
+    icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`,
+  },
+  {
+    id: 'liquid', name: 'LocaLiquid', desc: 'Net worth engine',
+    color: '#06B6D4', text: '#22d3ee', status: 'soon',
+    devUrl: DEV_BASE + '/Liquid/', prodUrl: 'https://liquid.n8.wtf',
+    icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2c0 0-8 6.5-8 12a8 8 0 0016 0c0-5.5-8-12-8-12z"/></svg>`,
+  },
+];
+
+function hexToRgb(hex) {
+  return [
+    parseInt(hex.slice(1,3),16),
+    parseInt(hex.slice(3,5),16),
+    parseInt(hex.slice(5,7),16),
+  ].join(',');
+}
+
+const grid = document.getElementById('appGrid');
+
+APPS.forEach(app => {
+  const url    = IS_DEV ? app.devUrl : app.prodUrl;
+  const isLive = app.status === 'live';
+  const rgb    = hexToRgb(app.color);
+  const tile   = document.createElement(isLive ? 'a' : 'div');
+
+  tile.className          = `app-tile ${app.status}`;
+  tile.dataset.app        = app.id;
+  tile.dataset.status     = app.status;
+  tile.dataset.url        = url;
+
+  if (isLive) tile.href = url;
+
+  tile.innerHTML = `
+    <div class="tile-badge ${isLive ? '' : 'soon-pulse'}"
+         style="background:rgba(${rgb},${isLive ? '0.2' : '0.1'});color:${app.text};border:1px solid rgba(${rgb},${isLive ? '0.4' : '0.22'})">
+      ${isLive ? 'LIVE' : 'SOON'}
+    </div>
+    <div class="tile-icon" style="background:rgba(${rgb},0.12);border:1px solid rgba(${rgb},0.25);color:${app.color}">
+      ${app.icon}
+    </div>
+    <div class="tile-name" style="color:${app.text}">${app.name}</div>
+    <div class="tile-desc">${app.desc}</div>
+    ${isLive
+      ? `<a href="${url}" class="launch-btn" data-launch="${app.id}" aria-label="Launch ${app.name}"
+            style="background:rgba(${rgb},0.18);color:${app.text};border:1px solid rgba(${rgb},0.3)">
+           Launch →
+         </a>`
+      : `<span class="text-xxs soon-pulse" style="color:${app.text};opacity:0.55">Coming soon</span>`
+    }
+  `;
+
+  grid.appendChild(tile);
+});
+
+// ── Drum ───────────────────────────────────────────────────────────────────
+const DRUM_H = 52;
+let step = 0;
+const drum = document.getElementById('suiteDrum');
 
 function advance() {
   step++;
-  if (step % 6 === 0 && step > 0) {
+  if (step % 6 === 0) {
     drum.style.transform = `translateY(-${step * DRUM_H}px)`;
     setTimeout(() => {
       drum.style.transition = 'none';
@@ -193,10 +222,10 @@ function advance() {
   }
 }
 
-// Start after 2s, every 2.8s
-setTimeout(() => { advance(); setInterval(advance, 2800); }, 2000);
+// Start after 1.8s, tick every 2.8s
+setTimeout(() => { advance(); setInterval(advance, 2800); }, 1800);
 
-// PWA service worker
+// ── PWA ────────────────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
 }
