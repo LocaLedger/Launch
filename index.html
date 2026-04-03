@@ -1,233 +1,1084 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>LocaLedger Suite</title>
+<!-- Google Identity Services (token client — no One Tap) -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<!-- Apple Sign In -->
+<script src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js" defer></script>
+<!-- Facebook SDK (loaded on demand) -->
 <script>
-  window.tailwind = { config: { theme: { extend: { fontSize: { 'xxs': ['0.625rem', { lineHeight: '0.875rem' }] } } } } }
+  window.tailwind = { config: { theme: { extend: { fontSize: { 'xxs': ['0.625rem',{lineHeight:'0.875rem'}] } } } } }
 </script>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
-body { font-family: 'Space Mono','Courier New',monospace; touch-action: manipulation; overscroll-behavior: none; }
+body { font-family:'Space Mono','Courier New',monospace; touch-action:manipulation; overscroll-behavior:none; }
 
-/* ── Drum ─────────────────────────────────────────────────── */
+/* ── Drum ─────────────────────────────────────────── */
 .suite-drum-wrap {
-  height: 52px; overflow: hidden; display: inline-block; vertical-align: middle;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 80%, transparent 100%);
-  mask-image:         linear-gradient(to bottom, transparent 0%, #000 20%, #000 80%, transparent 100%);
+  height:52px; overflow:hidden; display:inline-block; vertical-align:middle;
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 20%,#000 80%,transparent 100%);
+  mask-image:linear-gradient(to bottom,transparent 0%,#000 20%,#000 80%,transparent 100%);
 }
-.suite-drum { transition: transform 0.52s cubic-bezier(0.4,0,0.2,1); will-change: transform; }
-.suite-face { display: block; height: 52px; line-height: 52px; white-space: nowrap; font-size: 36px; font-weight: 700; }
+.suite-drum { transition:transform 0.6s cubic-bezier(0.22,1,0.36,1); will-change:transform; }
+.suite-face { display:block; height:52px; line-height:52px; white-space:nowrap; font-size:36px; font-weight:700; }
 
-/* ── Tiles ────────────────────────────────────────────────── */
+/* ── Screens ──────────────────────────────────────── */
+.screen { display:none; min-height:100svh; flex-direction:column; }
+.screen.active { display:flex; }
+
+/* ── App Tiles ────────────────────────────────────── */
 .app-tile {
-  display: flex; flex-direction: column; align-items: flex-start;
-  padding: 16px; border-radius: 18px;
-  border: 1px solid rgba(255,255,255,0.07);
-  background: rgba(255,255,255,0.03);
-  text-decoration: none; position: relative; overflow: hidden;
-  opacity: 0;
-  animation: tileIn 0.35s ease forwards;
+  display:flex; flex-direction:column; align-items:flex-start;
+  padding:16px; border-radius:18px;
+  border:1px solid rgba(255,255,255,0.07);
+  background:rgba(255,255,255,0.03);
+  position:relative; overflow:hidden; cursor:default;
+  opacity:0; animation:tileIn 0.35s ease forwards;
 }
-.app-tile.live { cursor: pointer; transition: border-color 0.15s, background 0.15s, transform 0.12s; }
-.app-tile.live:hover  { border-color: rgba(255,255,255,0.14); background: rgba(255,255,255,0.06); }
-.app-tile.live:active { transform: scale(0.97); }
-.app-tile.soon { cursor: default; }
+.app-tile.tappable { cursor:pointer; transition:border-color 0.15s,background 0.15s,transform 0.12s; }
+.app-tile.tappable:active { transform:scale(0.97); }
+.app-tile.tappable:hover { border-color:rgba(255,255,255,0.14); background:rgba(255,255,255,0.06); }
 
-.tile-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
-.tile-name { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 2px; }
-.tile-desc { font-size: 10px; color: #94a3b8; line-height: 1.4; margin-bottom: 12px; flex: 1; }
+.tile-icon { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; margin-bottom:12px; flex-shrink:0; }
+.tile-name { font-size:14px; font-weight:700; letter-spacing:-0.01em; margin-bottom:2px; }
+.tile-desc { font-size:10px; color:#94a3b8; line-height:1.4; margin-bottom:12px; flex:1; }
+.tile-badge { position:absolute; top:12px; right:12px; font-size:8px; font-weight:700; padding:2px 7px; border-radius:999px; letter-spacing:0.07em; text-transform:uppercase; }
+.tile-cta { display:inline-flex; align-items:center; gap:5px; padding:7px 12px; border-radius:8px; font-size:11px; font-weight:700; font-family:inherit; border:none; cursor:pointer; background:none; }
 
-.tile-badge {
-  position: absolute; top: 12px; right: 12px;
-  font-size: 8px; font-weight: 700; padding: 2px 7px; border-radius: 999px;
-  letter-spacing: 0.07em; text-transform: uppercase;
-}
+/* ── Pricing cards ────────────────────────────────── */
+.plan-card { border-radius:18px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03); padding:20px; position:relative; }
+.plan-card.featured { border-color:rgba(99,102,241,0.45); background:rgba(99,102,241,0.05); }
+.plan-feature { display:flex; gap:8px; align-items:flex-start; font-size:10px; color:#94a3b8; line-height:1.7; }
+.plan-btn { width:100%; padding:12px; border-radius:10px; font-size:12px; font-weight:700; font-family:inherit; border:none; cursor:pointer; transition:opacity 0.15s,transform 0.1s; }
+.plan-btn:active { transform:scale(0.98); }
+.plan-btn:disabled { opacity:0.5; cursor:default; }
 
-.launch-btn {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 7px 12px; border-radius: 8px;
-  font-size: 11px; font-weight: 700; font-family: inherit;
-  border: none; cursor: pointer;
-  transition: opacity 0.15s, transform 0.1s;
-  text-decoration: none;
-}
-.launch-btn:active { transform: scale(0.96); opacity: 0.85; }
+/* ── Auth card ────────────────────────────────────── */
+.auth-card { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:24px; padding:32px 24px; max-width:340px; width:100%; animation:scaleIn 0.4s cubic-bezier(0.22,1,0.36,1) both; }
+.google-btn { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:13px; border-radius:12px; background:#fff; color:#1f2937; font-size:13px; font-weight:700; font-family:inherit; border:none; cursor:pointer; transition:opacity 0.15s,transform 0.1s; }
+.google-btn:active { transform:scale(0.98); opacity:0.85; }
+.provider-btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:11px; border-radius:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#e2e8f0; font-size:12px; font-weight:700; font-family:inherit; cursor:pointer; transition:background 0.15s,transform 0.1s; }
+.provider-btn:active { transform:scale(0.97); }
+.provider-btn:hover { background:rgba(255,255,255,0.09); }
+.provider-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+.divider { display:flex; align-items:center; gap:8px; margin:18px 0; }
+.divider::before,.divider::after { content:''; flex:1; height:1px; background:rgba(255,255,255,0.06); }
+/* ── Phone modal ──────────────────────────────────── */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; z-index:200; padding:20px; }
+.modal-box { background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:28px 24px; max-width:320px; width:100%; animation:scaleIn 0.25s cubic-bezier(0.22,1,0.36,1) both; }
+.modal-input { width:100%; padding:12px 14px; border-radius:10px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#f1f5f9; font-size:14px; font-family:inherit; outline:none; box-sizing:border-box; }
+.modal-input:focus { border-color:rgba(99,102,241,0.5); }
+.modal-input::placeholder { color:#334155; }
 
-/* ── Pulse ────────────────────────────────────────────────── */
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }
-.soon-pulse { animation: pulse 2.8s ease-in-out infinite; }
+/* ── Nav / header ─────────────────────────────────── */
+.nav-btn { background:none; border:none; cursor:pointer; padding:6px; border-radius:8px; color:inherit; transition:background 0.15s; }
+.nav-btn:hover { background:rgba(255,255,255,0.06); }
+.avatar { width:34px; height:34px; border-radius:50%; background:rgba(99,102,241,0.2); border:1px solid rgba(99,102,241,0.35); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#818cf8; overflow:hidden; }
+.avatar img { width:100%; height:100%; object-fit:cover; }
 
-/* ── Stagger entrance ─────────────────────────────────────── */
-@keyframes tileIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
-.app-tile:nth-child(1) { animation-delay: 0.08s; }
-.app-tile:nth-child(2) { animation-delay: 0.16s; }
-.app-tile:nth-child(3) { animation-delay: 0.24s; }
-.app-tile:nth-child(4) { animation-delay: 0.32s; }
-.app-tile:nth-child(5) { animation-delay: 0.40s; }
-.app-tile:nth-child(6) { animation-delay: 0.48s; }
+/* ── Suite banner ─────────────────────────────────── */
+.suite-banner { background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.22); border-radius:12px; padding:12px 14px; display:flex; align-items:center; gap:10px; }
 
-/* ── Header entrance ──────────────────────────────────────── */
-@keyframes fadeDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-header { animation: fadeDown 0.4s ease forwards; }
+/* ── Animations ───────────────────────────────────── */
+@keyframes tileIn  { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadeDown{ from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+@keyframes scaleIn { from{opacity:0;transform:scale(0.95)}      to{opacity:1;transform:scale(1)} }
+@keyframes pulse   { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.soon-pulse { animation:pulse 2.8s ease-in-out infinite; }
 </style>
-<link rel="manifest" href="manifest.json" />
-<meta name="theme-color" content="#0f172a" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#0f172a"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
 </head>
 
-<body class="bg-gray-950 text-gray-100 min-h-screen flex flex-col" style="padding-bottom:env(safe-area-inset-bottom,0px)">
+<body class="bg-gray-950 text-gray-100" style="padding-bottom:env(safe-area-inset-bottom,0px)">
 
-<!-- ── Header ─────────────────────────────────────────────── -->
-<header class="px-5 pt-4 pb-8 text-center">
-  <div class="flex items-center justify-center gap-0 mb-2">
-    <svg width="44" height="48" viewBox="0 0 20 22" fill="none" style="flex-shrink:0;margin-right:6px" aria-hidden="true">
-      <circle cx="4" cy="4"  r="2.5" fill="#22C55E"/>
-      <rect x="8.5" y="2.75"  width="9"  height="2.5" rx="1.25" fill="#334155"/>
-      <circle cx="4" cy="11" r="2.5" fill="#F43F5E"/>
-      <rect x="8.5" y="9.75"  width="12" height="2.5" rx="1.25" fill="#334155"/>
-      <circle cx="4" cy="18" r="2.5" fill="#6366F1"/>
-      <rect x="8.5" y="16.75" width="7"  height="2.5" rx="1.25" fill="#334155"/>
-    </svg>
-    <span style="font-size:36px;font-weight:700;color:#F8FAFC;line-height:1">Loca</span>
-    <div class="suite-drum-wrap">
-      <div id="suiteDrum" class="suite-drum">
-        <span class="suite-face" style="color:#6366F1">Labor</span>
-        <span class="suite-face" style="color:#F43F5E">Loss</span>
-        <span class="suite-face" style="color:#F59E0B">Limit</span>
-        <span class="suite-face" style="color:#F97316">Loan</span>
-        <span class="suite-face" style="color:#10B981">Legacy</span>
-        <span class="suite-face" style="color:#06B6D4">Liquid</span>
-        <span class="suite-face" style="color:#6366F1">Labor</span>
+<!-- ════════════════════════════════════════════════════
+     SCREEN — AUTH
+════════════════════════════════════════════════════ -->
+<div id="screen-auth" class="screen">
+  <div class="flex-1 flex flex-col items-center justify-center px-6 py-16" style="gap:0">
+
+    <!-- Wordmark + drum -->
+    <div class="flex items-center mb-2">
+      <svg width="44" height="48" viewBox="0 0 20 22" fill="none" style="flex-shrink:0;margin-right:6px">
+        <defs>
+          <filter id="gA" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="1.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <filter id="gB" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="1.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <filter id="gC" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="1.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <line x1="4" y1="7.5" x2="4" y2="10" stroke="#334155" stroke-width="1.5"/>
+        <line x1="4" y1="12" x2="4" y2="14.5" stroke="#334155" stroke-width="1.5"/>
+        <circle cx="4" cy="4"  r="2.5" fill="#22C55E" filter="url(#gA)"/>
+        <rect x="8.5" y="2.75"  width="9"  height="2.5" rx="1.25" fill="#334155"/>
+        <circle cx="4" cy="11" r="2.5" fill="#EAB308" filter="url(#gB)"/>
+        <rect x="8.5" y="9.75"  width="12" height="2.5" rx="1.25" fill="#334155"/>
+        <circle cx="4" cy="18" r="2.5" fill="#6366F1" filter="url(#gC)"/>
+        <rect x="8.5" y="16.75" width="7"  height="2.5" rx="1.25" fill="#334155"/>
+      </svg>
+      <span style="font-size:36px;font-weight:700;color:#F8FAFC;line-height:1">Loca</span>
+      <div class="suite-drum-wrap">
+        <div id="authDrum" class="suite-drum">
+          <span class="suite-face" style="color:#6366F1">Labor</span>
+          <span class="suite-face" style="color:#F43F5E">Loss</span>
+          <span class="suite-face" style="color:#F59E0B">Limit</span>
+          <span class="suite-face" style="color:#F97316">Loan</span>
+          <span class="suite-face" style="color:#10B981">Legacy</span>
+          <span class="suite-face" style="color:#06B6D4">Liquid</span>
+          <span class="suite-face" style="color:#6366F1">Labor</span>
+        </div>
       </div>
     </div>
-  </div>
-  <p class="text-xs text-gray-500 mt-1">Your offline personal finance suite</p>
-</header>
+    <p style="font-size:11px;color:#475569;margin-bottom:36px">Your offline personal finance suite</p>
 
-<!-- ── App Grid ───────────────────────────────────────────── -->
-<main class="flex-1 px-4 pb-10">
-  <div id="appGrid" class="grid grid-cols-2 gap-3 max-w-sm mx-auto"></div>
-  <p class="text-center text-xs text-gray-700 mt-8">Offline · Private · No accounts</p>
-</main>
+    <!-- Auth card -->
+    <div class="auth-card">
+      <h1 style="font-size:17px;font-weight:700;color:#f1f5f9;margin-bottom:6px;line-height:1.3">Sign in to LocaLedger</h1>
+      <p style="font-size:11px;color:#64748b;margin-bottom:24px;line-height:1.6">Access your apps, sync data across devices, and manage your subscription.</p>
+
+      <!-- Google -->
+      <button class="google-btn" id="googleSignInBtn" onclick="handleGoogleSignIn()">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 002.38-5.88c0-.57-.05-.66-.15-1.17z"/>
+          <path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 01-7.18-2.54H1.83v2.07A8 8 0 008.98 17z"/>
+          <path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 010-3.04V5.41H1.83a8 8 0 000 7.18l2.67-2.07z"/>
+          <path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 001.83 5.4L4.5 7.49a4.77 4.77 0 014.48-3.3z"/>
+        </svg>
+        Continue with Google
+      </button>
+
+      <div class="divider"><span style="font-size:10px;color:#334155">or continue with</span></div>
+
+      <!-- Other providers -->
+      <div class="provider-grid">
+        <button class="provider-btn" onclick="handleAppleSignIn()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+          Apple
+        </button>
+        <button class="provider-btn" onclick="handleXSignIn()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          X / Twitter
+        </button>
+        <button class="provider-btn" onclick="handleFacebookSignIn()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+          Facebook
+        </button>
+        <button class="provider-btn" onclick="handlePhoneSignIn()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
+          Phone
+        </button>
+      </div>
+
+      <button id="devBypassBtn" onclick="handleDevBypass()" style="display:none;width:100%;padding:10px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.08);color:#334155;font-size:10px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:4px">
+        Continue without account (dev)
+      </button>
+
+      <p style="font-size:9px;color:#1e293b;text-align:center;margin-top:16px;line-height:1.6">
+        Offline by default. Your data never leaves this device unless you enable Cloud sync.
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PHONE AUTH MODAL
+════════════════════════════════════════════════════ -->
+<div id="phoneModal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closePhoneModal()">
+  <div class="modal-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <span style="font-size:15px;font-weight:700;color:#f1f5f9">Sign in with Phone</span>
+      <button onclick="closePhoneModal()" style="background:none;border:none;color:#475569;cursor:pointer;padding:4px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <!-- Step 1: Phone + Email -->
+    <div id="phoneStep1">
+      <p style="font-size:11px;color:#64748b;margin-bottom:16px;line-height:1.6">Enter your phone number. We'll text you a verification code.</p>
+      <input id="phoneInput" class="modal-input" type="tel" placeholder="+1 555 000 0000" style="margin-bottom:10px" autocomplete="tel"/>
+      <input id="phoneEmailInput" class="modal-input" type="email" placeholder="Email address (to link your account)" style="margin-bottom:16px" autocomplete="email"/>
+      <button onclick="submitPhone()" style="width:100%;padding:12px;border-radius:10px;background:linear-gradient(135deg,#6366F1,#8b5cf6);color:#fff;font-size:13px;font-weight:700;font-family:inherit;border:none;cursor:pointer;transition:opacity 0.15s" id="sendCodeBtn">
+        Send Code
+      </button>
+    </div>
+
+    <!-- Step 2: OTP verification -->
+    <div id="phoneStep2" style="display:none">
+      <p style="font-size:11px;color:#64748b;margin-bottom:4px;line-height:1.6">Enter the 6-digit code sent to <span id="phoneDisplay" style="color:#f1f5f9;font-weight:700"></span></p>
+      <p style="font-size:10px;color:#334155;margin-bottom:16px">Also check your email if SMS is delayed.</p>
+      <input id="otpInput" class="modal-input" type="text" inputmode="numeric" maxlength="6" placeholder="000000" style="text-align:center;font-size:22px;letter-spacing:0.2em;margin-bottom:16px"/>
+      <button onclick="verifyOtp()" style="width:100%;padding:12px;border-radius:10px;background:linear-gradient(135deg,#6366F1,#8b5cf6);color:#fff;font-size:13px;font-weight:700;font-family:inherit;border:none;cursor:pointer">
+        Verify Code
+      </button>
+      <button onclick="document.getElementById('phoneStep1').style.display='block';document.getElementById('phoneStep2').style.display='none'" style="width:100%;padding:9px;margin-top:8px;border-radius:10px;background:none;border:none;color:#475569;font-size:11px;font-family:inherit;cursor:pointer">
+        ← Change number
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SCREEN — HOME
+════════════════════════════════════════════════════ -->
+<div id="screen-home" class="screen">
+
+  <header class="px-5 flex items-center justify-between" style="padding-top:max(20px,env(safe-area-inset-top));padding-bottom:12px;animation:fadeDown 0.35s ease both">
+    <div class="flex items-center">
+      <svg width="32" height="36" viewBox="0 0 20 22" fill="none" style="flex-shrink:0;margin-right:5px">
+        <circle cx="4" cy="4"  r="2.5" fill="#22C55E"/>
+        <rect x="8.5" y="2.75"  width="9"  height="2.5" rx="1.25" fill="#334155"/>
+        <circle cx="4" cy="11" r="2.5" fill="#EAB308"/>
+        <rect x="8.5" y="9.75"  width="12" height="2.5" rx="1.25" fill="#334155"/>
+        <circle cx="4" cy="18" r="2.5" fill="#6366F1"/>
+        <rect x="8.5" y="16.75" width="7"  height="2.5" rx="1.25" fill="#334155"/>
+      </svg>
+      <span style="font-size:20px;font-weight:700;color:#F8FAFC;line-height:1">LocaLedger</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <button class="nav-btn" onclick="showScreen('pricing')" aria-label="Upgrade" title="Plans">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      </button>
+      <button id="headerSettingsBtn" class="nav-btn" onclick="showScreen('settings')" aria-label="Account">
+        <div class="avatar" id="headerAvatar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        </div>
+      </button>
+    </div>
+  </header>
+
+  <!-- Suite upgrade banner -->
+  <div id="suiteBanner" class="mx-4 mb-3 suite-banner" style="display:none">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" style="flex-shrink:0"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:11px;font-weight:700;color:#fbbf24">Unlock the full suite</div>
+      <div style="font-size:10px;color:#78350f;margin-top:1px">Cross-app sync and LocaLimit require Suite</div>
+    </div>
+    <button onclick="showScreen('pricing')" style="background:rgba(245,158,11,0.18);border:1px solid rgba(245,158,11,0.3);color:#fbbf24;padding:6px 10px;border-radius:8px;font-size:10px;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap;flex-shrink:0">
+      View plans
+    </button>
+  </div>
+
+  <main class="flex-1 px-4 pb-10">
+    <div id="appGrid" class="grid grid-cols-2 gap-3 max-w-sm mx-auto"></div>
+    <p style="text-align:center;font-size:10px;color:#1e293b;margin-top:32px">Offline · Private · Your data stays here</p>
+  </main>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SCREEN — PRICING
+════════════════════════════════════════════════════ -->
+<div id="screen-pricing" class="screen">
+  <div class="px-5 flex items-center gap-3" style="padding-top:max(20px,env(safe-area-inset-top));padding-bottom:12px">
+    <button class="nav-btn" onclick="showScreen('home')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    </button>
+    <span style="font-size:16px;font-weight:700;color:#f1f5f9">Choose a plan</span>
+  </div>
+
+  <div class="flex-1 overflow-y-auto px-4 pb-12">
+    <div class="max-w-sm mx-auto">
+      <p style="font-size:11px;color:#64748b;margin-bottom:16px;line-height:1.6">Core apps are always free and offline. Subscribe to unlock cross-app intelligence or cloud sync.</p>
+
+      <!-- Interval toggle -->
+      <div style="display:flex;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:3px;margin-bottom:18px;gap:3px">
+        <button id="toggleMonthly" onclick="setPricingInterval('m')"
+          style="flex:1;padding:7px;border-radius:7px;font-size:11px;font-weight:700;font-family:inherit;border:none;cursor:pointer;transition:background 0.15s,color 0.15s;background:rgba(255,255,255,0.08);color:#f1f5f9">
+          Monthly
+        </button>
+        <button id="toggleYearly" onclick="setPricingInterval('y')"
+          style="flex:1;padding:7px;border-radius:7px;font-size:11px;font-weight:700;font-family:inherit;border:none;cursor:pointer;transition:background 0.15s,color 0.15s;background:none;color:#64748b;display:flex;align-items:center;justify-content:center;gap:5px">
+          Yearly <span style="font-size:8px;background:rgba(34,197,94,0.18);color:#4ade80;padding:1px 6px;border-radius:999px;font-weight:700">~25% off</span>
+        </button>
+      </div>
+
+      <div id="currentPlanBanner" style="display:none;margin-bottom:16px"></div>
+      <div id="pricingCards"></div>
+
+      <p style="font-size:9px;color:#334155;text-align:center;line-height:1.6;margin-top:8px">
+        Payments processed by Stripe · Cancel anytime
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SCREEN — SETTINGS
+════════════════════════════════════════════════════ -->
+<div id="screen-settings" class="screen">
+  <div class="px-5 flex items-center gap-3" style="padding-top:max(20px,env(safe-area-inset-top));padding-bottom:12px">
+    <button class="nav-btn" onclick="showScreen('home')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    </button>
+    <span style="font-size:16px;font-weight:700;color:#f1f5f9">Account</span>
+  </div>
+
+  <div class="flex-1 overflow-y-auto px-4 pb-12">
+    <div class="max-w-sm mx-auto">
+
+      <!-- User card -->
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:20px;margin-bottom:14px;display:flex;align-items:center;gap:14px">
+        <div class="avatar" style="width:50px;height:50px;font-size:18px;flex-shrink:0" id="settingsAvatar">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        </div>
+        <div style="min-width:0;flex:1">
+          <div id="settingsName" style="font-size:14px;font-weight:700;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
+          <div id="settingsEmail" style="font-size:10px;color:#64748b;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
+        </div>
+      </div>
+
+      <!-- Subscription -->
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:16px 20px;margin-bottom:14px">
+        <div style="font-size:10px;font-weight:700;color:#334155;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px">Subscription</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div id="settingsPlanName" style="font-size:14px;font-weight:700;color:#f1f5f9">Free</div>
+          <span id="settingsPlanBadge" style="font-size:9px;font-weight:700;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,0.06);color:#64748b">FREE</span>
+        </div>
+        <button onclick="showScreen('pricing')" style="width:100%;padding:10px;border-radius:10px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.22);color:#818cf8;font-size:11px;font-weight:700;font-family:inherit;cursor:pointer">
+          Manage subscription →
+        </button>
+      </div>
+
+      <!-- Sign out -->
+      <button onclick="confirmSignOut()" style="width:100%;padding:13px;border-radius:12px;background:rgba(244,63,94,0.07);border:1px solid rgba(244,63,94,0.18);color:#fb7185;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer">
+        Sign out
+      </button>
+
+      <p style="font-size:9px;color:#1e293b;text-align:center;margin-top:20px;line-height:1.5">
+        LocaLedger Suite · Offline-first personal finance
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- GSI trigger (hidden) -->
+<div id="g_id_onload"
+  data-client_id="681905008973-gnlds2i4agth8javvcu75u8t286c9a17.apps.googleusercontent.com"
+  data-callback="handleCredential"
+  data-auto_prompt="false"
+  style="display:none">
+</div>
 
 <script>
-// ── URL routing: relative in dev, absolute subdomains in prod ──────────────
-const IS_DEV   = ['localhost', '127.0.0.1'].includes(location.hostname);
-const DEV_BASE = `${location.protocol}//${location.hostname}${location.port ? ':' + location.port : ''}`;
+/* ══════════════════════════════════════════════════
+   CONFIG
+══════════════════════════════════════════════════ */
+const GOOGLE_CLIENT_ID  = '681905008973-gnlds2i4agth8javvcu75u8t286c9a17.apps.googleusercontent.com';
+const FACEBOOK_APP_ID   = '';  // Set your Meta App ID from developers.facebook.com
+const APPLE_CLIENT_ID   = '';  // Set your Apple Service ID from developer.apple.com
 
-const APPS = [
-  {
-    id: 'labor', name: 'LocaLabor', desc: 'Income & shift tracker',
-    color: '#6366F1', text: '#818cf8', status: 'live',
-    devUrl: DEV_BASE + '/Labor/', prodUrl: 'https://labor.n8.wtf',
-    icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>`,
-  },
-  {
-    id: 'loss', name: 'LocaLoss', desc: 'Spending & bill tracker',
-    color: '#F43F5E', text: '#fda4af', status: 'live',
-    devUrl: DEV_BASE + '/Loss/', prodUrl: 'https://loss.n8.wtf',
-    icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`,
-  },
-  {
-    id: 'limit', name: 'LocaLimit', desc: 'Budget intelligence',
-    color: '#F59E0B', text: '#fbbf24', status: 'soon',
-    devUrl: DEV_BASE + '/Limit/', prodUrl: 'https://limit.n8.wtf',
-    icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>`,
-  },
-  {
-    id: 'loan', name: 'LocaLoan', desc: 'Loan payoff optimizer',
-    color: '#F97316', text: '#fb923c', status: 'soon',
-    devUrl: DEV_BASE + '/Loan/', prodUrl: 'https://loan.n8.wtf',
-    icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>`,
-  },
-  {
-    id: 'legacy', name: 'LocaLegacy', desc: 'Investment tracker',
-    color: '#10B981', text: '#34d399', status: 'soon',
-    devUrl: DEV_BASE + '/Legacy/', prodUrl: 'https://legacy.n8.wtf',
-    icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`,
-  },
-  {
-    id: 'liquid', name: 'LocaLiquid', desc: 'Net worth engine',
-    color: '#06B6D4', text: '#22d3ee', status: 'soon',
-    devUrl: DEV_BASE + '/Liquid/', prodUrl: 'https://liquid.n8.wtf',
-    icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2c0 0-8 6.5-8 12a8 8 0 0016 0c0-5.5-8-12-8-12z"/></svg>`,
-  },
-];
+const IS_DEV  = ['localhost','127.0.0.1'].includes(location.hostname);
+const DEV_BASE = `${location.protocol}//${location.hostname}${location.port?':'+location.port:''}`;
+const LOGS_URL = IS_DEV ? 'http://localhost:3002' : 'https://logs.n8.wtf';
 
-function hexToRgb(hex) {
-  return [
-    parseInt(hex.slice(1,3),16),
-    parseInt(hex.slice(3,5),16),
-    parseInt(hex.slice(5,7),16),
-  ].join(',');
+/* ══════════════════════════════════════════════════
+   AUTH STATE  —  localStorage key: locaAuth
+══════════════════════════════════════════════════ */
+function getAuth()    { try { return JSON.parse(localStorage.getItem('locaAuth')||'null'); } catch { return null; } }
+function setAuth(d)   { localStorage.setItem('locaAuth', JSON.stringify(d)); }
+function clearAuth()  { localStorage.removeItem('locaAuth'); }
+
+// In-memory token (not persisted — refreshed on each sign-in)
+let _sessionToken = null;
+
+/* ══════════════════════════════════════════════════
+   SCREENS
+══════════════════════════════════════════════════ */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  if (id === 'home')     renderHome();
+  if (id === 'settings') renderSettings();
+  if (id === 'pricing')  renderPricing();
 }
 
-const grid = document.getElementById('appGrid');
+/* ══════════════════════════════════════════════════
+   GOOGLE SIGN-IN  (token client — no One Tap)
+══════════════════════════════════════════════════ */
+let _googleTokenClient = null;
 
-APPS.forEach(app => {
-  const url    = IS_DEV ? app.devUrl : app.prodUrl;
-  const isLive = app.status === 'live';
-  const rgb    = hexToRgb(app.color);
-  const tile   = document.createElement(isLive ? 'a' : 'div');
+function handleGoogleSignIn() {
+  const btn = document.getElementById('googleSignInBtn');
+  if (!window.google?.accounts?.oauth2) {
+    showToast('Google is loading — try again in a moment');
+    return;
+  }
+  if (!_googleTokenClient) {
+    _googleTokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: 'email profile openid',
+      callback: _onGoogleToken,
+      error_callback: () => {
+        btn.disabled = false;
+        btn.innerHTML = btn.innerHTML.replace('Signing in…','Continue with Google');
+      },
+    });
+  }
+  btn.disabled = true;
+  btn.innerHTML = btn.innerHTML.replace('Continue with Google','Signing in…');
+  // prompt:'select_account' forces the account picker — prevents silent failures
+  _googleTokenClient.requestAccessToken({ prompt: 'select_account' });
+}
 
-  tile.className          = `app-tile ${app.status}`;
-  tile.dataset.app        = app.id;
-  tile.dataset.status     = app.status;
-  tile.dataset.url        = url;
+async function _onGoogleToken(response) {
+  const btn = document.getElementById('googleSignInBtn');
+  btn.disabled = false;
+  btn.innerHTML = btn.innerHTML.replace('Signing in…','Continue with Google');
+  if (response.error) { showToast('Google sign-in cancelled'); return; }
+  try {
+    const r    = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${response.access_token}` },
+    });
+    if (!r.ok) throw new Error('userinfo failed');
+    const user = await r.json();
+    await finishSignIn({
+      uid: user.sub, email: user.email, name: user.name,
+      photo: user.picture, provider: 'google', isDev: false,
+    });
+  } catch { showToast('Failed to get Google profile — try again'); }
+}
 
-  if (isLive) tile.href = url;
-
-  tile.innerHTML = `
-    <div class="tile-badge ${isLive ? '' : 'soon-pulse'}"
-         style="background:rgba(${rgb},${isLive ? '0.2' : '0.1'});color:${app.text};border:1px solid rgba(${rgb},${isLive ? '0.4' : '0.22'})">
-      ${isLive ? 'LIVE' : 'SOON'}
-    </div>
-    <div class="tile-icon" style="background:rgba(${rgb},0.12);border:1px solid rgba(${rgb},0.25);color:${app.color}">
-      ${app.icon}
-    </div>
-    <div class="tile-name" style="color:${app.text}">${app.name}</div>
-    <div class="tile-desc">${app.desc}</div>
-    ${isLive
-      ? `<a href="${url}" class="launch-btn" data-launch="${app.id}" aria-label="Launch ${app.name}"
-            style="background:rgba(${rgb},0.18);color:${app.text};border:1px solid rgba(${rgb},0.3)">
-           Launch →
-         </a>`
-      : `<span class="text-xxs soon-pulse" style="color:${app.text};opacity:0.55">Coming soon</span>`
-    }
-  `;
-
-  grid.appendChild(tile);
-});
-
-// ── Drum ───────────────────────────────────────────────────────────────────
-const DRUM_H = 52;
-let step = 0;
-const drum = document.getElementById('suiteDrum');
-
-function advance() {
-  step++;
-  if (step % 6 === 0) {
-    drum.style.transform = `translateY(-${step * DRUM_H}px)`;
-    setTimeout(() => {
-      drum.style.transition = 'none';
-      step = 0;
-      drum.style.transform = 'translateY(0)';
-      requestAnimationFrame(() => { drum.style.transition = ''; });
-    }, 520);
-  } else {
-    drum.style.transform = `translateY(-${step * DRUM_H}px)`;
+/* ══════════════════════════════════════════════════
+   APPLE SIGN-IN
+══════════════════════════════════════════════════ */
+async function handleAppleSignIn() {
+  if (!APPLE_CLIENT_ID) { showToast('Apple sign-in not configured'); return; }
+  if (!window.AppleID) { showToast('Apple SDK loading — try again'); return; }
+  try {
+    AppleID.auth.init({
+      clientId: APPLE_CLIENT_ID,
+      scope: 'name email',
+      redirectURI: location.origin + '/Launch/',
+      usePopup: true,
+    });
+    const response = await AppleID.auth.signIn();
+    const payload  = decodeJwt(response.authorization.id_token);
+    const name = response.user?.name
+      ? `${response.user.name.firstName||''} ${response.user.name.lastName||''}`.trim()
+      : (payload.email || 'Apple User');
+    await finishSignIn({
+      uid: 'apple:' + payload.sub, email: payload.email || '',
+      name, photo: null, provider: 'apple', isDev: false,
+    });
+  } catch (e) {
+    if (e?.error !== 'popup_closed_by_user') showToast('Apple sign-in failed');
   }
 }
 
-// Start after 1.8s, tick every 2.8s
-setTimeout(() => { advance(); setInterval(advance, 2800); }, 1800);
+/* ══════════════════════════════════════════════════
+   X / TWITTER SIGN-IN  (PKCE via Logs server)
+══════════════════════════════════════════════════ */
+async function handleXSignIn() {
+  try {
+    const r = await fetch(`${LOGS_URL}/v1/auth/x/start`);
+    if (!r.ok) { showToast('X login not configured'); return; }
+    const { url, error } = await r.json();
+    if (error) { showToast('X login not configured'); return; }
+    window.location.href = url;
+  } catch { showToast('Could not reach server — X sign-in unavailable'); }
+}
 
-// ── PWA ────────────────────────────────────────────────────────────────────
+/* ══════════════════════════════════════════════════
+   FACEBOOK SIGN-IN
+══════════════════════════════════════════════════ */
+function handleFacebookSignIn() {
+  if (!FACEBOOK_APP_ID) { showToast('Facebook sign-in not configured'); return; }
+  function _doFbLogin() {
+    window.FB.login(response => {
+      if (!response.authResponse) { showToast('Facebook sign-in cancelled'); return; }
+      window.FB.api('/me', { fields: 'id,name,email,picture.type(large)' }, profile => {
+        finishSignIn({
+          uid: 'fb:' + profile.id, email: profile.email || '',
+          name: profile.name, photo: profile.picture?.data?.url || null,
+          provider: 'facebook', isDev: false,
+        });
+      });
+    }, { scope: 'public_profile,email' });
+  }
+  if (window.FB) { _doFbLogin(); return; }
+  // Lazy-load Facebook SDK
+  window.fbAsyncInit = function() {
+    FB.init({ appId: FACEBOOK_APP_ID, cookie: true, xfbml: false, version: 'v19.0' });
+    _doFbLogin();
+  };
+  const s = document.createElement('script');
+  s.src = 'https://connect.facebook.net/en_US/sdk.js';
+  document.head.appendChild(s);
+}
+
+/* ══════════════════════════════════════════════════
+   PHONE SIGN-IN
+══════════════════════════════════════════════════ */
+let _phoneSessionId = null;
+
+function handlePhoneSignIn() {
+  document.getElementById('phoneModal').style.display = 'flex';
+  document.getElementById('phoneStep1').style.display = 'block';
+  document.getElementById('phoneStep2').style.display = 'none';
+  document.getElementById('phoneInput').value = '';
+  document.getElementById('phoneEmailInput').value = '';
+  document.getElementById('otpInput').value = '';
+}
+function closePhoneModal() {
+  document.getElementById('phoneModal').style.display = 'none';
+}
+
+async function submitPhone() {
+  const phone = document.getElementById('phoneInput').value.trim();
+  const email = document.getElementById('phoneEmailInput').value.trim();
+  if (!phone) { showToast('Phone number required'); return; }
+  if (!email) { showToast('Email address required'); return; }
+  const btn = document.getElementById('sendCodeBtn');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    const r = await fetch(`${LOGS_URL}/v1/auth/phone/request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, email }),
+    });
+    const data = await r.json();
+    if (!r.ok) { showToast(data.error || 'Failed to send code'); return; }
+    _phoneSessionId = data.session_id;
+    document.getElementById('phoneDisplay').textContent = phone;
+    document.getElementById('phoneStep1').style.display = 'none';
+    document.getElementById('phoneStep2').style.display = 'block';
+    showToast('Code sent!');
+  } catch { showToast('Could not reach server'); }
+  finally { btn.disabled = false; btn.textContent = 'Send Code'; }
+}
+
+async function verifyOtp() {
+  const code = document.getElementById('otpInput').value.trim();
+  if (code.length !== 6 || !_phoneSessionId) { showToast('Enter the 6-digit code'); return; }
+  try {
+    const r = await fetch(`${LOGS_URL}/v1/auth/phone/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: _phoneSessionId, code }),
+    });
+    const data = await r.json();
+    if (!r.ok) { showToast(data.error || 'Invalid code'); return; }
+    _sessionToken = data.token;
+    closePhoneModal();
+    await finishSignIn({
+      uid: data.sub, email: data.email,
+      name: data.email, photo: null,
+      provider: 'phone', isDev: false,
+    });
+  } catch { showToast('Could not verify code'); }
+}
+
+/* ══════════════════════════════════════════════════
+   COMMON SIGN-IN FINISH
+══════════════════════════════════════════════════ */
+function handleDevBypass() {
+  finishSignIn({ uid:'dev-user', email:'dev@localedger.app', name:'Dev User', photo:null, provider:'dev', isDev:true });
+}
+
+async function finishSignIn(userFields) {
+  const existing = getAuth();
+  const sameUser = existing && existing.uid === userFields.uid;
+  const auth = {
+    ...userFields,
+    subscription: sameUser ? existing.subscription : null,
+    subscribedAt: sameUser ? existing.subscribedAt : null,
+    interval:     sameUser ? existing.interval     : null,
+  };
+  setAuth(auth);
+
+  // Pull server-side subscription status from Logs (best-effort)
+  try {
+    const headers = {};
+    if (_sessionToken)     headers['Authorization'] = `Bearer ${_sessionToken}`;
+    else if (IS_DEV)       headers['X-Dev-Sub']     = auth.uid;
+    if (Object.keys(headers).length) {
+      const r = await fetch(`${LOGS_URL}/v1/subscription`, { headers });
+      if (r.ok) {
+        const data = await r.json();
+        if (data.subscription) {
+          auth.subscription = data.subscription;
+          auth.subscribedAt = data.subscribed_at;
+          auth.interval     = data.interval;
+          setAuth(auth);
+        }
+      }
+    }
+  } catch {} // Logs offline is fine — localStorage is the fallback
+
+  showScreen('home');
+}
+
+function confirmSignOut() {
+  if (!confirm('Sign out?\n\nYour local data stays on this device.')) return;
+  _sessionToken = null;
+  _googleTokenClient = null;
+  clearAuth();
+  if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
+  showScreen('auth');
+}
+
+function decodeJwt(token) {
+  try {
+    const b64 = token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+    return JSON.parse(atob(b64));
+  } catch { return {}; }
+}
+
+/* ══════════════════════════════════════════════════
+   SUBSCRIPTIONS
+══════════════════════════════════════════════════ */
+const PLANS = {
+  null:   { label:'Free',   color:'#64748b', sub:'Always included',    mo:null,    yr:null },
+  sync:   { label:'Sync',   color:'#22d3ee', sub:'Cloud across devices', mo:'$1.99', yr:'$14.99' },
+  suite:  { label:'Suite',  color:'#818cf8', sub:'Cross-app intelligence', mo:'$3.99', yr:'$29.99' },
+  bundle: { label:'Bundle', color:'#10B981', sub:'Everything',           mo:'$4.99', yr:'$39.99' },
+};
+
+const STRIPE_LINKS = {
+  sync_m:   'https://buy.stripe.com/test_6oU00l2BPeQ8bZQeOHcEw00',
+  sync_y:   'https://buy.stripe.com/test_bJe4gBekxfUc2pg8qjcEw01',
+  suite_m:  'https://buy.stripe.com/test_00w3cx4JX8rK5BseOHcEw02',
+  suite_y:  'https://buy.stripe.com/test_dRmeVffoBeQ80h835ZcEw03',
+  bundle_m: 'https://buy.stripe.com/test_3cI6oJgsF8rKaVMfSLcEw04',
+  bundle_y: 'https://buy.stripe.com/test_8x25kF4JX8rKe7YcGzcEw05',
+};
+
+let _pricingInterval = 'm'; // 'm' | 'y'
+
+function hasSuiteAccess(auth) {
+  return auth && (auth.subscription === 'suite' || auth.subscription === 'bundle');
+}
+function hasSyncAccess(auth) {
+  return auth && (auth.subscription === 'sync' || auth.subscription === 'bundle');
+}
+
+function setPricingInterval(iv) {
+  _pricingInterval = iv;
+  const mBtn = document.getElementById('toggleMonthly');
+  const yBtn = document.getElementById('toggleYearly');
+  mBtn.style.background = iv === 'm' ? 'rgba(255,255,255,0.10)' : 'transparent';
+  mBtn.style.color      = iv === 'm' ? '#f1f5f9' : '#64748b';
+  yBtn.style.background = iv === 'y' ? 'rgba(255,255,255,0.10)' : 'transparent';
+  yBtn.style.color      = iv === 'y' ? '#f1f5f9' : '#64748b';
+  renderPricingCards();
+}
+
+function selectPlan(tier) {
+  const auth = getAuth();
+  if (!auth) { showScreen('auth'); return; }
+  if (auth.subscription === tier) return;
+
+  if (tier === null) {
+    if (!confirm('Downgrade to Free?\n\nYou will lose Suite and Sync access. Your local data stays on this device.')) return;
+    auth.subscription = null;
+    auth.subscribedAt = null;
+    auth.interval = null;
+    setAuth(auth);
+    renderPricing();
+    showToast('Downgraded to Free');
+    return;
+  }
+
+  const key = `${tier}_${_pricingInterval}`;
+  if (STRIPE_LINKS[key]) {
+    const auth = getAuth();
+    const ref  = auth?.uid ? `?client_reference_id=${encodeURIComponent(auth.uid)}` : '';
+    window.location.href = STRIPE_LINKS[key] + ref;
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   RENDER: HOME
+══════════════════════════════════════════════════ */
+const APPS = [
+  {
+    id:'labor', name:'LocaLabor', desc:'Income & shift tracker',
+    color:'#6366F1', text:'#818cf8', requiresSuite:false, comingSoon:false,
+    devUrl: DEV_BASE+'/Labor/', prodUrl:'https://labor.n8.wtf',
+    icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>`,
+  },
+  {
+    id:'loss', name:'LocaLoss', desc:'Spending & bill tracker',
+    color:'#F43F5E', text:'#fda4af', requiresSuite:false, comingSoon:false,
+    devUrl: DEV_BASE+'/Loss/', prodUrl:'https://loss.n8.wtf',
+    icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`,
+  },
+  {
+    id:'limit', name:'LocaLimit', desc:'Budget intelligence',
+    color:'#F59E0B', text:'#fbbf24', requiresSuite:true, comingSoon:false,
+    devUrl: DEV_BASE+'/Limit/', prodUrl:'https://limit.n8.wtf',
+    icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>`,
+  },
+  {
+    id:'loan', name:'LocaLoan', desc:'Loan payoff optimizer',
+    color:'#F97316', text:'#fb923c', requiresSuite:true, comingSoon:false,
+    devUrl: DEV_BASE+'/Loan/', prodUrl:'https://loan.n8.wtf',
+    icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>`,
+  },
+  {
+    id:'legacy', name:'LocaLegacy', desc:'Investment tracker',
+    color:'#10B981', text:'#34d399', requiresSuite:true, comingSoon:false,
+    devUrl: DEV_BASE+'/Legacy/', prodUrl:'https://legacy.n8.wtf',
+    icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`,
+  },
+  {
+    id:'liquid', name:'LocaLiquid', desc:'Net worth engine',
+    color:'#06B6D4', text:'#22d3ee', requiresSuite:true, comingSoon:false,
+    devUrl: DEV_BASE+'/Liquid/', prodUrl:'https://liquid.n8.wtf',
+    icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2c0 0-8 6.5-8 12a8 8 0 0016 0c0-5.5-8-12-8-12z"/></svg>`,
+  },
+];
+
+function renderHome() {
+  const auth   = getAuth();
+  const suite  = hasSuiteAccess(auth);
+  const grid   = document.getElementById('appGrid');
+  const banner = document.getElementById('suiteBanner');
+  const avatar = document.getElementById('headerAvatar');
+
+  // Update avatar
+  if (auth && auth.photo) {
+    avatar.innerHTML = `<img src="${auth.photo}" alt="" onerror="this.remove()">`;
+  } else if (auth && auth.name) {
+    avatar.textContent = auth.name[0].toUpperCase();
+  }
+
+  // Show banner if no suite subscription
+  banner.style.display = (auth && !suite) ? 'flex' : 'none';
+
+  const urlKey = IS_DEV ? 'devUrl' : 'prodUrl';
+  grid.innerHTML = '';
+
+  APPS.forEach((app, i) => {
+    const rgb  = hexToRgb(app.color);
+    const soon = app.comingSoon;
+    const locked = app.requiresSuite && !suite;
+    const tile = document.createElement('div');
+    tile.className = `app-tile${(soon || locked) ? '' : ' tappable'}`;
+    tile.style.animationDelay = `${0.06 + i * 0.07}s`;
+
+    if (!soon) {
+      tile.onclick = () => {
+        if (locked) { showScreen('pricing'); }
+        else { window.location.href = app[urlKey]; }
+      };
+    }
+
+    const badgeBg  = locked ? 'rgba(99,102,241,0.18)' : soon ? `rgba(${rgb},0.1)` : `rgba(${rgb},0.18)`;
+    const badgeClr = locked ? '#818cf8' : app.text;
+    const badgeBdr = locked ? 'rgba(99,102,241,0.35)' : soon ? `rgba(${rgb},0.2)` : `rgba(${rgb},0.35)`;
+    const badgeTxt = locked ? 'SUITE' : soon ? 'SOON' : 'LIVE';
+
+    tile.innerHTML = `
+      <div class="tile-badge ${soon?'soon-pulse':''}" style="background:${badgeBg};color:${badgeClr};border:1px solid ${badgeBdr}">${badgeTxt}</div>
+      <div class="tile-icon" style="background:rgba(${rgb},0.12);border:1px solid rgba(${rgb},0.22);color:${app.color}">${app.icon}</div>
+      <div class="tile-name" style="color:${app.text}">${app.name}</div>
+      <div class="tile-desc">${app.desc}</div>
+      ${soon
+        ? `<span class="soon-pulse" style="font-size:10px;color:${app.text};opacity:0.5">Coming soon</span>`
+        : locked
+        ? `<span style="display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);font-size:10px;font-weight:700;color:#818cf8"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Unlock →</span>`
+        : `<span style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px;background:rgba(${rgb},0.12);border:1px solid rgba(${rgb},0.22);font-size:11px;font-weight:700;color:${app.text}">Open →</span>`
+      }
+    `;
+    grid.appendChild(tile);
+  });
+}
+
+/* ══════════════════════════════════════════════════
+   RENDER: SETTINGS
+══════════════════════════════════════════════════ */
+function renderSettings() {
+  const auth = getAuth(); if (!auth) return;
+  const sub   = auth.subscription;
+  const plan  = PLANS[sub] || PLANS[null];
+  const price = sub ? (auth.interval === 'y' ? plan.yr+'/yr' : plan.mo+'/mo') : null;
+
+  document.getElementById('settingsName').textContent  = auth.name  || 'LocaLedger User';
+  document.getElementById('settingsEmail').textContent = auth.email || '—';
+
+  document.getElementById('settingsPlanName').textContent  = plan.label + (price ? ' — ' + price : '');
+  document.getElementById('settingsPlanName').style.color  = plan.color;
+  document.getElementById('settingsPlanBadge').textContent = plan.label.toUpperCase();
+  document.getElementById('settingsPlanBadge').style.cssText += `;background:rgba(${hexToRgb(plan.color)},0.12);color:${plan.color}`;
+
+  const av = document.getElementById('settingsAvatar');
+  if (auth.photo) {
+    av.innerHTML = `<img src="${auth.photo}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.remove()">`;
+  } else if (auth.name) {
+    av.textContent = auth.name[0].toUpperCase();
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   RENDER: PRICING
+══════════════════════════════════════════════════ */
+function renderPricing() {
+  const auth = getAuth();
+  const sub  = auth ? auth.subscription : null;
+
+  // Current plan banner
+  const banner = document.getElementById('currentPlanBanner');
+  if (sub) {
+    const plan = PLANS[sub];
+    const price = auth.interval === 'y' ? plan.yr : plan.mo;
+    banner.style.display = 'block';
+    banner.innerHTML = `<div style="padding:10px 14px;border-radius:10px;background:rgba(${hexToRgb(plan.color)},0.08);border:1px solid rgba(${hexToRgb(plan.color)},0.22);display:flex;align-items:center;gap:8px;margin-bottom:16px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${plan.color}" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+      <span style="font-size:11px;font-weight:700;color:${plan.color}">Active: ${plan.label}${price?' — '+price+(auth.interval==='y'?'/yr':'/mo'):''}</span>
+    </div>`;
+  } else {
+    banner.style.display = 'none';
+  }
+
+  renderPricingCards();
+}
+
+function renderPricingCards() {
+  const auth = getAuth();
+  const sub  = auth ? auth.subscription : null;
+  const iv   = _pricingInterval;
+  const container = document.getElementById('pricingCards');
+  if (!container) return;
+
+  const CARD_DEFS = [
+    {
+      tier: null,
+      featured: false,
+      name: 'Free',
+      tagline: 'Always included',
+      color: '#64748b',
+      price: '$0',
+      priceSub: null,
+      features: [
+        { on:true,  text:'LocaLabor — income & shift tracking' },
+        { on:true,  text:'LocaLoss — expense & bill tracking' },
+        { on:true,  text:'LocaLoan — loan payoff planner' },
+        { on:true,  text:'LocaLegacy — investment tracker' },
+        { on:false, text:'Cross-app data intelligence (LocaLimit)' },
+        { on:false, text:'Cloud sync & multi-device access' },
+      ],
+    },
+    {
+      tier: 'sync',
+      featured: false,
+      name: 'Sync',
+      tagline: 'Cloud across devices',
+      color: '#22d3ee',
+      price: iv === 'y' ? '$14.99' : '$1.99',
+      priceSub: iv === 'y' ? '/yr' : '/mo',
+      features: [
+        { on:true,  text:'Everything in Free' },
+        { on:true,  text:'Cloud backup — data saved to your account', accent:true },
+        { on:true,  text:'Access from multiple devices', accent:true },
+        { on:false, text:'Cross-app data intelligence (LocaLimit)' },
+      ],
+    },
+    {
+      tier: 'suite',
+      featured: true,
+      badge: 'MOST POPULAR',
+      name: 'Suite',
+      tagline: 'Cross-app intelligence',
+      color: '#818cf8',
+      price: iv === 'y' ? '$29.99' : '$3.99',
+      priceSub: iv === 'y' ? '/yr' : '/mo',
+      features: [
+        { on:true,  text:'Everything in Free' },
+        { on:true,  text:'LocaLimit — full budget intelligence', accent:true },
+        { on:true,  text:'Cross-app data bridge (Labor + Loss → Limit)', accent:true },
+        { on:true,  text:'All current & future Suite modules', accent:true },
+        { on:false, text:'Cloud sync & multi-device access' },
+      ],
+    },
+    {
+      tier: 'bundle',
+      featured: false,
+      name: 'Bundle',
+      tagline: 'Suite + Sync — everything',
+      color: '#10B981',
+      price: iv === 'y' ? '$39.99' : '$4.99',
+      priceSub: iv === 'y' ? '/yr' : '/mo',
+      features: [
+        { on:true,  text:'Everything in Suite', accent:true },
+        { on:true,  text:'Cloud backup & multi-device sync', accent:true },
+        { on:true,  text:'Data export & restore', accent:true },
+        { on:true,  text:'Priority support', accent:true },
+      ],
+    },
+  ];
+
+  container.innerHTML = CARD_DEFS.map(card => {
+    const isCurrent = sub === card.tier;
+    const rgb = hexToRgb(card.color);
+    const featuredStyle = card.featured
+      ? `border-color:rgba(${rgb},0.45);background:rgba(${rgb},0.05);`
+      : '';
+    const badge = card.badge
+      ? `<div style="position:absolute;top:-1px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,${card.color},${card.color}cc);padding:3px 14px;border-radius:0 0 8px 8px;font-size:8px;font-weight:700;color:#fff;letter-spacing:0.1em;white-space:nowrap">${card.badge}</div>` : '';
+    const topPad = card.badge ? 'margin-top:14px;' : '';
+    const featureRows = card.features.map(f => {
+      const tick = f.on
+        ? `<span style="color:${f.accent ? card.color : '#22C55E'};flex-shrink:0">✓</span>`
+        : `<span style="color:#334155;flex-shrink:0">✗</span>`;
+      const textColor = f.on ? (f.accent ? card.color : '') : '#334155';
+      return `<div class="plan-feature">${tick}<span style="color:${textColor}">${f.text}</span></div>`;
+    }).join('');
+
+    let btnStyle, btnText, btnDisabled;
+    if (isCurrent) {
+      btnStyle = `background:rgba(${rgb},0.08);color:${card.color};border:1px solid rgba(${rgb},0.22);opacity:0.6;cursor:default`;
+      btnText  = 'Current plan';
+      btnDisabled = 'disabled';
+    } else if (card.tier === null) {
+      btnStyle = `background:rgba(255,255,255,0.05);color:#94a3b8;border:1px solid rgba(255,255,255,0.08)`;
+      btnText  = sub ? 'Downgrade to Free' : 'Current plan';
+      btnDisabled = sub ? '' : 'disabled';
+    } else if (card.featured) {
+      btnStyle = `background:linear-gradient(135deg,${card.color},${card.color}bb);color:#fff`;
+      btnText  = `Subscribe — ${card.price}${card.priceSub}`;
+      btnDisabled = '';
+    } else {
+      btnStyle = `background:rgba(${rgb},0.1);color:${card.color};border:1px solid rgba(${rgb},0.28)`;
+      btnText  = `Subscribe — ${card.price}${card.priceSub}`;
+      btnDisabled = '';
+    }
+
+    return `<div class="plan-card mb-3" style="${featuredStyle}position:relative">
+      ${badge}
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;${topPad}">
+        <div>
+          <div style="font-size:15px;font-weight:700;color:${card.color}">${card.name}</div>
+          <div style="font-size:10px;color:#475569;margin-top:2px">${card.tagline}</div>
+        </div>
+        <div style="text-align:right">
+          <span style="font-size:24px;font-weight:700;color:#f1f5f9">${card.price}</span>
+          ${card.priceSub ? `<span style="font-size:10px;color:#475569">${card.priceSub}</span>` : ''}
+        </div>
+      </div>
+      <div style="margin-bottom:18px;display:flex;flex-direction:column;gap:2px">${featureRows}</div>
+      <button class="plan-btn" onclick="selectPlan(${card.tier === null ? 'null' : `'${card.tier}'`})"
+        style="${btnStyle}" ${btnDisabled}>${btnText}</button>
+    </div>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════════ */
+let _toastTimer;
+function showToast(msg) {
+  let t = document.getElementById('lc-toast');
+  if (!t) {
+    t = document.createElement('div'); t.id = 'lc-toast';
+    t.style.cssText = 'position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:rgba(30,41,59,0.97);color:#f1f5f9;padding:10px 20px;border-radius:999px;font-size:12px;font-weight:700;pointer-events:none;opacity:0;transition:opacity 0.2s,transform 0.22s cubic-bezier(0.22,1,0.36,1);z-index:999;white-space:nowrap;border:1px solid rgba(255,255,255,0.1);box-shadow:0 4px 24px rgba(0,0,0,0.4)';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1'; t.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(20px)'; }, 2600);
+}
+
+/* ══════════════════════════════════════════════════
+   UTILS
+══════════════════════════════════════════════════ */
+function hexToRgb(h) {
+  return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)].join(',');
+}
+
+/* ══════════════════════════════════════════════════
+   DRUM — continuous spin on auth screen
+══════════════════════════════════════════════════ */
+const DRUM_H = 52;
+let drumStep = 0;
+const drum   = document.getElementById('authDrum');
+
+function advanceDrum() {
+  drumStep++;
+  if (drumStep % 6 === 0) {
+    drum.style.transform = `translateY(-${drumStep * DRUM_H}px)`;
+    setTimeout(() => {
+      drum.style.transition = 'none';
+      drumStep = 0;
+      drum.style.transform = 'translateY(0)';
+      requestAnimationFrame(() => requestAnimationFrame(() => { drum.style.transition = ''; }));
+    }, 620);
+  } else {
+    drum.style.transform = `translateY(-${drumStep * DRUM_H}px)`;
+  }
+}
+setTimeout(() => { advanceDrum(); setInterval(advanceDrum, 2200); }, 1400);
+
+/* ══════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════ */
+(function init() {
+  if (IS_DEV) document.getElementById('devBypassBtn').style.display = 'block';
+
+  // Google token client is initialized lazily on first click
+  // (no GSI initialize needed — we use oauth2.initTokenClient now)
+
+  const params  = new URLSearchParams(location.search);
+  const auth    = getAuth();
+
+  // ── X OAuth callback  (?xtoken=<logs_jwt>) ──────────────
+  const xtoken = params.get('xtoken');
+  if (xtoken) {
+    history.replaceState({}, '', location.pathname);
+    const payload = decodeJwt(xtoken);
+    if (payload.sub) {
+      _sessionToken = xtoken;
+      finishSignIn({
+        uid: payload.sub, email: payload.email || '',
+        name: payload.email || 'X User', photo: null,
+        provider: 'x', isDev: false,
+      });
+      return;
+    }
+  }
+
+  // ── Stripe success redirect  (?success=suite_m) ─────────
+  const success = params.get('success');
+  if (success && auth) {
+    const parts = success.split('_');
+    const tier  = parts.slice(0, -1).join('_');
+    const iv    = parts[parts.length - 1];
+    if (PLANS[tier] !== undefined) {
+      auth.subscription = tier;
+      auth.subscribedAt = Date.now();
+      auth.interval     = iv;
+      setAuth(auth);
+      history.replaceState({}, '', location.pathname);
+      showScreen('home');
+      showToast('Subscription activated — welcome to ' + PLANS[tier].label + '!');
+      return;
+    }
+  }
+
+  // ── Deep-link: ?goto=pricing (from gated apps) ──────────
+  const goto = params.get('goto');
+
+  // Route to correct screen
+  if (!auth) {
+    showScreen('auth');
+  } else if (goto === 'pricing') {
+    history.replaceState({}, '', location.pathname);
+    showScreen('pricing');
+  } else {
+    showScreen('home');
+  }
+})();
+
+/* ══════════════════════════════════════════════════
+   PWA
+══════════════════════════════════════════════════ */
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 }
 </script>
 </body>

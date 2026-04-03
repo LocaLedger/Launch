@@ -1,0 +1,26 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="80" fill="#0F172A"/>
+
+  <!-- 2×3 grid of app color tiles representing the suite -->
+  <!-- Row 1: Labor (indigo), Loss (rose) -->
+  <rect x="72"  y="80"  width="160" height="160" rx="24" fill="#6366F1" opacity="0.9"/>
+  <rect x="280" y="80"  width="160" height="160" rx="24" fill="#F43F5E" opacity="0.9"/>
+
+  <!-- Row 2: Limit (amber), Loan (orange) -->
+  <rect x="72"  y="272" width="160" height="160" rx="24" fill="#F59E0B" opacity="0.9"/>
+  <rect x="280" y="272" width="160" height="160" rx="24" fill="#F97316" opacity="0.9"/>
+
+  <!-- Connector lines between tiles -->
+  <line x1="256" y1="80"  x2="256" y2="432" stroke="#1E293B" stroke-width="8"/>
+  <line x1="72"  y1="256" x2="440" y2="256" stroke="#1E293B" stroke-width="8"/>
+
+  <!-- Center dot overlay -->
+  <circle cx="256" cy="256" r="20" fill="#0F172A"/>
+  <circle cx="256" cy="256" r="12" fill="#6366F1"/>
+
+  <!-- Subtle emerald + cyan dots in corners for Legacy/Liquid -->
+  <circle cx="152" cy="160" r="16" fill="rgba(255,255,255,0.15)"/>
+  <circle cx="360" cy="160" r="16" fill="rgba(255,255,255,0.15)"/>
+  <circle cx="152" cy="352" r="16" fill="rgba(255,255,255,0.15)"/>
+  <circle cx="360" cy="352" r="16" fill="rgba(255,255,255,0.15)"/>
+</svg>
