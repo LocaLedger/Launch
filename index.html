@@ -89,6 +89,7 @@ body { font-family:'Space Mono','Courier New',monospace; touch-action:manipulati
 @keyframes scaleIn { from{opacity:0;transform:scale(0.95)}      to{opacity:1;transform:scale(1)} }
 @keyframes pulse   { 0%,100%{opacity:1} 50%{opacity:0.4} }
 .soon-pulse { animation:pulse 2.8s ease-in-out infinite; }
+@keyframes ll-highlight-pulse { 0%,100%{filter:brightness(1)} 50%{filter:brightness(1.18)} }
 
 /* ── Animated background orbs ─────────────────────── */
 .bg-orbs { position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0; }
@@ -108,6 +109,8 @@ body { font-family:'Space Mono','Courier New',monospace; touch-action:manipulati
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#0f172a"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="LocaLedger"/>
+<link rel="apple-touch-icon" href="icon.svg"/>
 </head>
 
 <body class="bg-gray-950 text-gray-100" style="padding-bottom:env(safe-area-inset-bottom,0px)">
@@ -441,7 +444,7 @@ let _sessionToken = null;
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-'+id).classList.add('active');
-  if (id === 'home')     renderHome();
+  if (id === 'home')     { _highlightTier = null; renderHome(); }
   if (id === 'settings') renderSettings();
   if (id === 'pricing')  renderPricing();
 }
@@ -502,7 +505,7 @@ async function handleAppleSignIn() {
     AppleID.auth.init({
       clientId: APPLE_CLIENT_ID,
       scope: 'name email',
-      redirectURI: location.origin + '/Launch/',
+      redirectURI: IS_DEV ? location.origin + '/Launch/' : location.origin + '/',
       usePopup: true,
     });
     const response = await AppleID.auth.signIn();
@@ -659,6 +662,17 @@ async function finishSignIn(userFields) {
     }
   } catch {} // Logs offline is fine — localStorage is the fallback
 
+  // If we were redirected here from a gated app, go straight to pricing
+  const pendingGoto      = sessionStorage.getItem('ll_pending_goto');
+  const pendingHighlight = sessionStorage.getItem('ll_pending_highlight');
+  if (pendingGoto === 'pricing') {
+    sessionStorage.removeItem('ll_pending_goto');
+    sessionStorage.removeItem('ll_pending_highlight');
+    if (pendingHighlight) _highlightTier = pendingHighlight;
+    showScreen('pricing');
+    return;
+  }
+
   showScreen('home');
 }
 
@@ -698,6 +712,7 @@ const STRIPE_LINKS = {
 };
 
 let _pricingInterval = 'm'; // 'm' | 'y'
+let _highlightTier   = null; // set when redirected from a gated app
 
 function hasSuiteAccess(auth) {
   return auth && (auth.subscription === 'suite' || auth.subscription === 'bundle');
@@ -748,37 +763,37 @@ const APPS = [
   {
     id:'labor', name:'LocaLabor', desc:'Income & shift tracker',
     color:'#6366F1', text:'#818cf8', requiresSuite:false, comingSoon:false,
-    devUrl: DEV_BASE+'/Labor/', prodUrl:'https://labor.n8.wtf',
+    devUrl: DEV_BASE+'/Labor/', prodUrl:'https://localedger.com/labor/',
     icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>`,
   },
   {
     id:'loss', name:'LocaLoss', desc:'Spending & bill tracker',
     color:'#F43F5E', text:'#fda4af', requiresSuite:false, comingSoon:false,
-    devUrl: DEV_BASE+'/Loss/', prodUrl:'https://loss.n8.wtf',
+    devUrl: DEV_BASE+'/Loss/', prodUrl:'https://localedger.com/loss/',
     icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`,
   },
   {
     id:'limit', name:'LocaLimit', desc:'Budget intelligence',
     color:'#F59E0B', text:'#fbbf24', requiresSuite:true, comingSoon:false,
-    devUrl: DEV_BASE+'/Limit/', prodUrl:'https://limit.n8.wtf',
+    devUrl: DEV_BASE+'/Limit/', prodUrl:'https://localedger.com/limit/',
     icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>`,
   },
   {
     id:'loan', name:'LocaLoan', desc:'Loan payoff optimizer',
     color:'#F97316', text:'#fb923c', requiresSuite:true, comingSoon:false,
-    devUrl: DEV_BASE+'/Loan/', prodUrl:'https://loan.n8.wtf',
+    devUrl: DEV_BASE+'/Loan/', prodUrl:'https://localedger.com/loan/',
     icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>`,
   },
   {
     id:'legacy', name:'LocaLegacy', desc:'Investment tracker',
     color:'#10B981', text:'#34d399', requiresSuite:true, comingSoon:false,
-    devUrl: DEV_BASE+'/Legacy/', prodUrl:'https://legacy.n8.wtf',
+    devUrl: DEV_BASE+'/Legacy/', prodUrl:'https://localedger.com/legacy/',
     icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`,
   },
   {
     id:'liquid', name:'LocaLiquid', desc:'Net worth engine',
     color:'#06B6D4', text:'#22d3ee', requiresSuite:true, comingSoon:false,
-    devUrl: DEV_BASE+'/Liquid/', prodUrl:'https://liquid.n8.wtf',
+    devUrl: DEV_BASE+'/Liquid/', prodUrl:'https://localedger.com/liquid/',
     icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2c0 0-8 6.5-8 12a8 8 0 0016 0c0-5.5-8-12-8-12z"/></svg>`,
   },
 ];
@@ -1133,14 +1148,21 @@ function renderPricingCards() {
   ];
 
   container.innerHTML = CARD_DEFS.map(card => {
-    const isCurrent = sub === card.tier;
+    const isCurrent  = sub === card.tier;
+    const isHighlight = _highlightTier && card.tier === _highlightTier;
     const rgb = hexToRgb(card.color);
-    const featuredStyle = card.featured
-      ? `border-color:rgba(${rgb},0.45);background:rgba(${rgb},0.05);`
+    const featuredStyle = (card.featured || isHighlight)
+      ? `border-color:rgba(${rgb},0.55);background:rgba(${rgb},0.06);`
       : '';
-    const badge = card.badge
-      ? `<div style="position:absolute;top:-1px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,${card.color},${card.color}cc);padding:3px 14px;border-radius:0 0 8px 8px;font-size:8px;font-weight:700;color:#fff;letter-spacing:0.1em;white-space:nowrap">${card.badge}</div>` : '';
-    const topPad = card.badge ? 'margin-top:14px;' : '';
+    const highlightStyle = isHighlight
+      ? `box-shadow:0 0 0 2px ${card.color},0 0 32px rgba(${rgb},0.4);animation:ll-highlight-pulse 1.6s ease-in-out 4;`
+      : '';
+    const badge = isHighlight
+      ? `<div style="position:absolute;top:-1px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,${card.color},${card.color}cc);padding:3px 14px;border-radius:0 0 8px 8px;font-size:8px;font-weight:700;color:#fff;letter-spacing:0.1em;white-space:nowrap">REQUIRED FOR THIS APP</div>`
+      : card.badge
+        ? `<div style="position:absolute;top:-1px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,${card.color},${card.color}cc);padding:3px 14px;border-radius:0 0 8px 8px;font-size:8px;font-weight:700;color:#fff;letter-spacing:0.1em;white-space:nowrap">${card.badge}</div>`
+        : '';
+    const topPad = (card.badge || isHighlight) ? 'margin-top:14px;' : '';
     const featureRows = card.features.map(f => {
       const tick = f.on
         ? `<span style="color:${f.accent ? card.color : '#22C55E'};flex-shrink:0">✓</span>`
@@ -1168,7 +1190,7 @@ function renderPricingCards() {
       btnDisabled = '';
     }
 
-    return `<div class="plan-card mb-3" style="${featuredStyle}position:relative">
+    return `<div class="plan-card mb-3" style="${featuredStyle}${highlightStyle}position:relative">
       ${badge}
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;${topPad}">
         <div>
@@ -1291,13 +1313,20 @@ setTimeout(() => { advanceDrum(); setInterval(advanceDrum, 2200); }, 1400);
     }
   }
 
-  // ── Deep-link: ?goto=pricing (from gated apps) ──────────
-  const goto = params.get('goto');
+  // ── Deep-link: ?goto=pricing&highlight=suite (from gated apps) ──
+  const goto      = params.get('goto');
+  const highlight = params.get('highlight');
 
   // Route to correct screen
   if (!auth) {
+    // Preserve goto/highlight so they fire after sign-in completes
+    if (goto === 'pricing' && highlight) {
+      sessionStorage.setItem('ll_pending_goto',      goto);
+      sessionStorage.setItem('ll_pending_highlight', highlight);
+    }
     showScreen('auth');
   } else if (goto === 'pricing') {
+    if (highlight) _highlightTier = highlight;
     history.replaceState({}, '', location.pathname);
     showScreen('pricing');
   } else {
