@@ -451,7 +451,8 @@ const APPLE_CLIENT_ID   = '';  // Set your Apple Service ID from developer.apple
 
 const IS_DEV  = ['localhost','127.0.0.1'].includes(location.hostname);
 const DEV_BASE = `${location.protocol}//${location.hostname}${location.port?':'+location.port:''}`;
-const LOGS_URL = IS_DEV ? 'http://localhost:3002' : 'https://logs.n8.wtf';
+// Production: Pages Function lives on the same origin — empty string = relative URLs.
+const LOGS_URL = IS_DEV ? 'http://localhost:3002' : '';
 
 /* ══════════════════════════════════════════════════
    AUTH STATE  —  localStorage key: locaAuth
@@ -513,8 +514,26 @@ async function _onGoogleToken(response) {
     });
     if (!r.ok) throw new Error('userinfo failed');
     const user = await r.json();
+
+    // Exchange the Google access token for a Logs JWT so the admin panel and
+    // other suite apps can call the backend without a separate sign-in flow.
+    // Stored in locaLogsToken (same origin localStorage — readable by /admin/).
+    try {
+      const logsR = await fetch(`${LOGS_URL}/v1/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: response.access_token }),
+      });
+      if (logsR.ok) {
+        const logsData = await logsR.json();
+        _sessionToken = logsData.token;
+        localStorage.setItem('locaLogsToken', logsData.token);
+      }
+    } catch { /* Logs server not running — backend features unavailable */ }
+
     await finishSignIn({
-      uid: user.sub, email: user.email, name: user.name,
+      // Prefix with "google:" so locaAuth.uid matches the Logs db sub format
+      uid: `google:${user.sub}`, email: user.email, name: user.name,
       photo: user.picture, provider: 'google', isDev: false,
     });
   } catch { showToast('Failed to get Google profile — try again'); }
@@ -672,7 +691,7 @@ async function finishSignIn(userFields) {
   try {
     const headers = {};
     if (_sessionToken)     headers['Authorization'] = `Bearer ${_sessionToken}`;
-    else if (IS_DEV)       headers['X-Dev-Sub']     = auth.uid;
+    else if (IS_DEV)     { headers['X-Dev-Sub']     = auth.uid; headers['X-Dev-Email'] = auth.email; }
     if (Object.keys(headers).length) {
       const r = await fetch(`${LOGS_URL}/v1/subscription`, { headers });
       if (r.ok) {
@@ -686,6 +705,21 @@ async function finishSignIn(userFields) {
       }
     }
   } catch {} // Logs offline is fine — localStorage is the fallback
+
+  // Pull admin status alongside subscription (best-effort — stored in locaAuth.is_admin)
+  try {
+    const adminHeaders = {};
+    if (_sessionToken)   adminHeaders['Authorization'] = `Bearer ${_sessionToken}`;
+    else if (IS_DEV)   { adminHeaders['X-Dev-Sub']     = auth.uid; adminHeaders['X-Dev-Email'] = auth.email; }
+    if (Object.keys(adminHeaders).length) {
+      const ar = await fetch(`${LOGS_URL}/v1/admin/me`, { headers: adminHeaders });
+      if (ar.ok) {
+        const ad = await ar.json();
+        auth.is_admin = ad.is_admin === true;
+        setAuth(auth);
+      }
+    }
+  } catch {}
 
   // If we were redirected here from a gated app, go straight to pricing
   const pendingGoto      = sessionStorage.getItem('ll_pending_goto');
@@ -709,6 +743,7 @@ function confirmSignOut() {
   _sessionToken = null;
   _googleTokenClient = null;
   clearAuth();
+  localStorage.removeItem('locaLogsToken');
   if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
   showScreen('auth');
 }
