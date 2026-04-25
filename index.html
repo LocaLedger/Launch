@@ -736,6 +736,11 @@ async function finishSignIn(userFields) {
   }
 
   showScreen('home');
+
+  // Auto-sync: pull after sign-in if toggle is on
+  if (hasSyncAccess(auth) && localStorage.getItem('locaAutoSync') === 'true') {
+    pullFromCloud().catch(() => {});
+  }
 }
 
 function confirmSignOut() {
@@ -968,22 +973,47 @@ function renderProSection(auth) {
 
   /* ── Sync status (Sync / Bundle only) ─────────── */
   if (hasSync) {
-    const syncColor = '#22d3ee';
-    const rgb = hexToRgb(syncColor);
+    const autoSync  = localStorage.getItem('locaAutoSync') === 'true';
+    const lastPush  = localStorage.getItem('locaLastPush');
+    const lastPull  = localStorage.getItem('locaLastPull');
+    const pushStr   = lastPush ? `Pushed ${timeAgo(lastPush)}` : null;
+    const pullStr   = lastPull ? `pulled ${timeAgo(lastPull)}` : null;
+    const statusStr = (pushStr || pullStr)
+      ? [pushStr, pullStr].filter(Boolean).join(' · ')
+      : 'No syncs yet — push to get started';
+
     html += `
     <div class="pro-section">
       <div class="pro-sec-title">Cloud Sync</div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-        <div style="width:8px;height:8px;border-radius:50%;background:${syncColor};box-shadow:0 0 8px ${syncColor};flex-shrink:0"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="width:8px;height:8px;border-radius:50%;background:#22d3ee;box-shadow:0 0 8px #22d3ee;flex-shrink:0"></div>
         <div>
           <div style="font-size:12px;font-weight:700;color:#e2e8f0">Sync Active</div>
-          <div style="font-size:10px;color:#475569;margin-top:2px">Data syncs to your account when online</div>
+          <div style="font-size:10px;color:#475569;margin-top:2px">${statusStr}</div>
         </div>
       </div>
-      <button class="pro-btn" onclick="triggerManualSync()" style="color:#22d3ee;border-color:rgba(34,211,238,0.2)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
-        Sync now
-      </button>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:10px 12px;background:rgba(34,211,238,0.06);border:1px solid rgba(34,211,238,0.12);border-radius:10px">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#e2e8f0">Auto sync on launch</div>
+          <div style="font-size:9px;color:#475569;margin-top:2px">Pull latest data every time the app opens</div>
+        </div>
+        <label style="position:relative;display:inline-flex;align-items:center;cursor:pointer;flex-shrink:0;margin-left:12px">
+          <input type="checkbox" onchange="toggleAutoSync(this.checked)" ${autoSync ? 'checked' : ''} style="opacity:0;position:absolute;width:0;height:0">
+          <div style="width:36px;height:20px;background:${autoSync ? '#22d3ee' : 'rgba(255,255,255,0.1)'};border-radius:99px;transition:background 0.2s;position:relative">
+            <div style="position:absolute;top:3px;${autoSync ? 'left:17px' : 'left:3px'};width:14px;height:14px;background:#fff;border-radius:50%;transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3)"></div>
+          </div>
+        </label>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="pro-btn" id="syncPushBtn" onclick="pushToCloud()" style="flex:1;color:#22d3ee;border-color:rgba(34,211,238,0.2)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Push data
+        </button>
+        <button class="pro-btn" id="syncPullBtn" onclick="pullFromCloud()" style="flex:1;color:#94a3b8;border-color:rgba(255,255,255,0.1)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Pull data
+        </button>
+      </div>
     </div>`;
   }
 
@@ -1098,10 +1128,85 @@ function clearAppData(appId, appName) {
   renderSettings(); // refresh the data sizes
 }
 
-function triggerManualSync() {
-  // Stub — sync logic lives in the Logs server integration
-  showToast('Syncing…');
-  setTimeout(() => showToast('Sync complete'), 1800);
+function timeAgo(isoStr) {
+  if (!isoStr) return null;
+  const secs = Math.floor((Date.now() - new Date(isoStr).getTime()) / 1000);
+  if (secs < 5)     return 'just now';
+  if (secs < 60)    return `${secs}s ago`;
+  if (secs < 3600)  return `${Math.floor(secs / 60)}m ago`;
+  if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`;
+  return `${Math.floor(secs / 86400)}d ago`;
+}
+
+function _syncHeaders() {
+  const auth = getAuth();
+  const headers = { 'Content-Type': 'application/json' };
+  if (_sessionToken)   headers['Authorization'] = `Bearer ${_sessionToken}`;
+  else if (IS_DEV)   { headers['X-Dev-Sub']     = auth?.uid; headers['X-Dev-Email'] = auth?.email; }
+  return headers;
+}
+
+async function pushToCloud() {
+  const auth = getAuth();
+  if (!hasSyncAccess(auth)) { showToast('Cloud sync requires a Sync or Bundle subscription'); return; }
+
+  const data = {};
+  APP_DATA_KEYS.forEach(app => {
+    const raw = localStorage.getItem(app.key);
+    if (raw) { try { data[app.key] = JSON.parse(raw); } catch { data[app.key] = raw; } }
+  });
+
+  const btn = document.getElementById('syncPushBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Pushing…'; }
+  try {
+    const r = await fetch(`${LOGS_URL}/v1/sync`, {
+      method: 'POST', headers: _syncHeaders(), body: JSON.stringify({ data }),
+    });
+    if (!r.ok) throw new Error('Push failed');
+    const { syncedAt } = await r.json();
+    localStorage.setItem('locaLastPush', new Date(syncedAt).toISOString());
+    showToast('Data pushed to cloud ✓');
+    renderSettings();
+  } catch {
+    showToast('Push failed — check your connection');
+    if (btn) { btn.disabled = false; btn.textContent = 'Push data'; }
+  }
+}
+
+async function pullFromCloud() {
+  const auth = getAuth();
+  if (!hasSyncAccess(auth)) { showToast('Cloud sync requires a Sync or Bundle subscription'); return; }
+
+  const btn = document.getElementById('syncPullBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Pulling…'; }
+  try {
+    const headers = _syncHeaders();
+    delete headers['Content-Type'];
+    const r = await fetch(`${LOGS_URL}/v1/sync`, { headers });
+    if (!r.ok) throw new Error('Pull failed');
+    const { data, syncedAt } = await r.json();
+
+    let updated = 0;
+    Object.entries(data || {}).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) {
+        localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
+        updated++;
+      }
+    });
+
+    if (syncedAt) localStorage.setItem('locaLastPull', new Date(syncedAt).toISOString());
+    showToast(updated > 0 ? `Pulled ${updated} app${updated !== 1 ? 's' : ''} from cloud ✓` : 'Nothing new from cloud');
+    renderSettings();
+  } catch {
+    showToast('Pull failed — check your connection');
+    if (btn) { btn.disabled = false; btn.textContent = 'Pull data'; }
+  }
+}
+
+function toggleAutoSync(checked) {
+  localStorage.setItem('locaAutoSync', checked ? 'true' : 'false');
+  renderSettings();
+  if (checked) showToast('Auto sync on — data pulls every time the app opens');
 }
 
 function openStripeBilling() {
@@ -1333,8 +1438,10 @@ setTimeout(() => { advanceDrum(); setInterval(advanceDrum, 2200); }, 1400);
 (function init() {
   if (IS_DEV) document.getElementById('devBypassBtn').style.display = 'block';
 
-  // Google token client is initialized lazily on first click
-  // (no GSI initialize needed — we use oauth2.initTokenClient now)
+  // Restore Logs session token from localStorage so authenticated endpoints
+  // (sync, admin) work on page reload without a fresh sign-in round-trip.
+  const storedToken = localStorage.getItem('locaLogsToken');
+  if (storedToken) _sessionToken = storedToken;
 
   const params  = new URLSearchParams(location.search);
   const auth    = getAuth();
@@ -1405,6 +1512,10 @@ setTimeout(() => { advanceDrum(); setInterval(advanceDrum, 2200); }, 1400);
     if (toast) setTimeout(() => { showToast(toast); _scrollToSuiteCard(); }, 350);
   } else {
     showScreen('home');
+    // Auto-sync: pull on launch for users already signed in with sync access
+    if (hasSyncAccess(auth) && localStorage.getItem('locaAutoSync') === 'true') {
+      pullFromCloud().catch(() => {});
+    }
   }
 })();
 
