@@ -698,7 +698,7 @@ async function finishSignIn(userFields) {
         const data = await r.json();
         if (data.subscription) {
           auth.subscription = data.subscription;
-          auth.subscribedAt = data.subscribed_at;
+          auth.subscribedAt = data.subscribedAt;
           auth.interval     = data.interval;
           setAuth(auth);
         }
